@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
-  root: __dirname,
   plugins: [react()],
   resolve: {
     alias: {
@@ -12,11 +11,8 @@ export default defineConfig({
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.json']
   },
   build: {
-    outDir: path.resolve(__dirname, '../dist'),
-    emptyOutDir: true,
-    rollupOptions: {
-      input: path.resolve(__dirname, 'index.html')
-    }
+    outDir: 'dist',
+    emptyOutDir: true
   },
   esbuild: {
     loader: 'tsx'
