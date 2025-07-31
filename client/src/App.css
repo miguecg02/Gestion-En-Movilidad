@@ -1,0 +1,86 @@
+#root {
+  background-color: #9c8dc7;
+  background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23fbc02d' stroke-width='2'%3E%3Cpolygon points='50,0 100,50 50,100 0,50'/%3E%3Cpolygon points='50,10 90,50 50,90 10,50'/%3E%3Cpolygon points='50,20 80,50 50,80 20,50'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 100px 100px;
+}
+
+.Cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* separa logo y nav */
+  padding: 0.5rem 1rem;
+  background-color: rgba(255, 255, 255, 0.8); /* fondo semitransparente */
+  backdrop-filter: blur(10px);             /* efecto vidrio esmerilado */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.Cabecera-logo {
+  height: 7rem;          /* tamaño controlado */
+  width: auto;
+  border-radius: 0.5rem; /* esquinas redondeadas */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+
+/* Reset básico para márgenes y padding */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Asegura que el HTML y body ocupen toda la pantalla */
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%; /* Evita zoom automático en iOS */
+  -webkit-font-smoothing: antialiased; /* Mejora renderizado de fuentes */
+}
+
+/* Contenedor principal flexible */
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tipografía responsiva */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.5;
+}
+
+/* Evita desbordamiento horizontal */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Botones y elementos táctiles */
+button, a {
+  touch-action: manipulation; /* Mejora la respuesta táctil */
+}
+
+/* Inputs legibles en móviles */
+input, textarea, select {
+  font-size: 1rem; /* Tamaño mínimo para evitar zoom en iOS */
+}
+
+/* Viewport para móviles */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px; /* Ajuste opcional para pantallas pequeñas */
+  }
+
+  /* Evita scroll horizontal */
+  html, body {
+    overflow-x: hidden;
+  }
+}

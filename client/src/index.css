@@ -1,0 +1,160 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body, #root {
+  min-height: 100vh;
+}
+/* Variables de color */
+:root {
+  --red-deep:   #D32F2F;
+  --maroon:     #8B0000;
+  --pink-bright:#E91E63;
+  --yellow-gold:#FFD700;
+  --teal-light: #8a6aa4;
+  --bg-light:   #FCE4EC;
+  --white:       #ffffff;
+  --black-soft:  rgba(0, 0, 0, 0.15);
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--bg-light);
+  color: var(--maroon);
+  line-height: 1.6;
+}
+
+/* Cabecera principal */
+.Cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(45deg, var(--red-deep), var(--pink-bright));
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+/* Título */
+.Cabecera-h1 {
+  font-size: 1.8rem;
+}
+
+.Cabecera-link {
+  text-decoration: none;
+  color: white;
+  transition: opacity 0.3s ease;
+}
+
+.Cabecera-link:hover {
+  opacity: 0.8;
+}
+
+/* Botón (por ejemplo para un ícono de menú) */
+.Cabecera-button {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.Cabecera-button:hover {
+  transform: scale(1.1);
+}
+
+
+
+.Cabecera-nav {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+
+.Cabecera-ul {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  list-style: none;
+  padding: 0;
+}
+
+.Cabecera-a {
+  text-decoration: none;
+  color: white;
+  border-bottom-color: var(--yellow-gold);
+  font-weight: 900;
+  font-size: 1.2rem; /* aumenta el tamaño */
+  padding: 0.75rem 1rem; /* agrega espacio interno */
+  transition: border-bottom 0.3s ease;
+  
+}
+
+.Cabecera-a:hover {
+  border-bottom: 2px solid white;
+}
+
+
+
+@media (max-width: 768px) {
+  .Cabecera-a {
+    font-size: 1.4rem;
+    padding: 1rem 0;
+  }
+}
+
+/* Contenedor centrado */
+.App-body {
+  display: flex;
+  justify-content: center;  /* centra horizontalmente */
+  padding: 5rem 0;
+}
+
+/* Grupo de botones */
+.ButtonGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4rem;
+  justify-content: center;  /* centra los botones dentro del grupo */
+}
+
+/* Estilo de los botones */
+.App-button {
+  /* Texto blanco */
+  color: var(--white);
+
+  /* Añadimos un borde negro suave */
+  border: 1px solid var(--black-soft);
+
+  /* El resto de tus estilos */
+  background-color: var(--teal-light);
+  font-size: 1.5rem;
+  padding: 1rem 2rem;
+  border-radius: 0.7rem;
+  min-width: 400px;
+  min-height: 200px;
+  cursor: pointer;
+  transition: 
+    background-color 0.3s ease, 
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+
+  /* Sombra muy ligera para dar un poco de profundidad */
+  box-shadow: 0 2px 4px var(--black-soft);
+}
+
+/* Hover y foco */
+.App-button:hover,
+.App-button:focus {
+  background-color: var(--pink-bright);
+  transform: translateY(-2px);
+
+  /* Intensificamos ligeramente la sombra al hacer hover */
+  box-shadow: 0 4px 8px var(--black-soft);
+}

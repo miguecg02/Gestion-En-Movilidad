@@ -1,0 +1,77 @@
+.EditarPersona {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 30px;
+  background-color: #f9f9fb;
+  border-radius: 12px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+.EditarPersona h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #333;
+}
+
+.EditarPersona form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.EditarPersona form div {
+  display: flex;
+  flex-direction: column;
+}
+
+.EditarPersona label {
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #822424;
+}
+
+.EditarPersona input,
+.EditarPersona textarea,
+.EditarPersona select {
+  padding: 10px 12px;
+  border: 1px solid #4c52c8;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+
+.EditarPersona input:focus,
+.EditarPersona textarea:focus,
+.EditarPersona select:focus {
+  border-color: #0077cc;
+  box-shadow: 0 0 0 2px rgba(0, 119, 204, 0.2);
+  outline: none;
+}
+
+.EditarPersona textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.EditarPersona button {
+  padding: 12px 20px;
+  font-size: 16px;
+  background-color: #4c52c8;
+  color: rgb(213, 214, 225);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background-color 0.3s;
+}
+
+.EditarPersona button:hover:not(:disabled) {
+  background-color: #005fa3;
+}
+
+.EditarPersona button:disabled {
+  background-color: #999;
+  cursor: not-allowed;
+}

@@ -1,0 +1,118 @@
+.encuentro-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.encuentro-container h2 {
+  color: #2c3e50;
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 1.8rem;
+}
+
+.encuentro-container h3 {
+  color: #3498db;
+  margin: 1.5rem 0 1rem;
+  font-size: 1.3rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.encuentro-container p {
+  color: #7f8c8d;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.encuentro-container form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.encuentro-container label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #34495e;
+  font-weight: 500;
+}
+
+.encuentro-container input[type="text"],
+.encuentro-container input[type="number"],
+.encuentro-container textarea {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.encuentro-container input[type="text"]:focus,
+.encuentro-container input[type="number"]:focus,
+.encuentro-container textarea:focus {
+  border-color: #3498db;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.encuentro-container textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.encuentro-container button {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 1rem;
+  align-self: flex-start;
+}
+
+.encuentro-container button:hover {
+  background-color: #2980b9;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .encuentro-container {
+    padding: 1.5rem;
+    margin: 0 1rem;
+  }
+  
+  .encuentro-container h2 {
+    font-size: 1.5rem;
+  }
+  
+  .encuentro-container h3 {
+    font-size: 1.1rem;
+  }
+}
+
+/* Estilo para grupos de campos relacionados */
+.field-group {
+  background-color: white;
+  padding: 1.2rem;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 1.5rem;
+}
+
+/* Validación visual */
+input:invalid, textarea:invalid {
+  border-color: #e74c3c;
+}
+
+input:valid, textarea:valid {
+  border-color: #2ecc71;
+}
