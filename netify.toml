@@ -1,15 +1,14 @@
 [build]
-  command = "cd client && npm install && npm run build"
-  publish = "client/dist"
+  command = "npm run build"  # Ejecuta desde raíz
+  publish = "dist"           # Directorio de salida de Vite
   functions = "netlify/functions"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+  force = true  # Fuerza SPA mode
 
 [context.production.environment]
   NODE_VERSION = "18"
-   VITE_API_URL = https://gestionenmovilidad.netlify.app/
-   JWT_SECRET = "tu_secreto_real"
+  VITE_API_URL = "https://tu-backend-real.com"  # Reemplaza con tu URL real

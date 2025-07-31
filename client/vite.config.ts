@@ -13,7 +13,15 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html') // Especifica entrada HTML
+      }
+    }
+  },
+  server: {
+    open: true  // Abre navegador automáticamente
   },
   esbuild: {
     loader: 'tsx'
