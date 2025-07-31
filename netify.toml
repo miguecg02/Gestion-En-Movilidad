@@ -1,6 +1,6 @@
 [build]
-  command = "cd client && npm install && npm run build"
-  publish = "client/dist"  # ¡Asegúrate que coincide con outDir!
+  command = "npm --prefix client install && npm --prefix client run build"
+  publish = "client/dist"
   functions = "netlify/functions"
 
 [[redirects]]
