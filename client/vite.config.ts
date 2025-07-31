@@ -8,7 +8,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    extensions: ['.js', '.ts', '.jsx', '.tsx', '.json']
   },
   build: {
     outDir: path.resolve(__dirname, '../dist'),
@@ -16,5 +17,8 @@ export default defineConfig({
     rollupOptions: {
       input: path.resolve(__dirname, 'index.html')
     }
+  },
+  esbuild: {
+    loader: 'tsx'
   }
 })

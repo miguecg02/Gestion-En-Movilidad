@@ -1,11 +1,10 @@
-// tsconfig.json
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "ESNext",
+    "module": "Node16",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["node"],
-    "moduleResolution": "bundler", // Changed from node16
+    "moduleResolution": "Node16",
     "esModuleInterop": true,
     "strict": true,
     "jsx": "react-jsx",
