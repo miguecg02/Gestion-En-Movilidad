@@ -4,12 +4,16 @@
     "module": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["node"],
-    "moduleResolution": "node",
+    "moduleResolution": "node16",
     "esModuleInterop": true,
+    "strict": true,
+    "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "allowJs": true,
+    "skipLibCheck": true
   },
   "include": ["src", "vite.config.ts"]
 }
