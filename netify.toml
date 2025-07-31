@@ -1,0 +1,12 @@
+[build]
+  command = "cd client && npm install && npm run build"
+  publish = "client/dist"  # ¡Asegúrate que coincide con outDir!
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[context.production.environment]
+  NODE_VERSION = "18"  # Usa tu versión de Node
