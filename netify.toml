@@ -11,3 +11,4 @@
 [context.production.environment]
   NODE_VERSION = "18"
    VITE_API_URL = https://gestionenmovilidad.netlify.app/
+   JWT_SECRET = "tu_secreto_real"

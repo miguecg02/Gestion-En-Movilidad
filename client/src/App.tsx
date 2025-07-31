@@ -62,7 +62,7 @@ function App() {
   return (
     <AuthProvider>
       <EncuentroProvider>
-      <BrowserRouter>
+      <BrowserRouter  basename="/">
         <Cabecera />
         <main className="App-body">
           <IniciarEncuentro />

@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 
 export default defineConfig({
+  base: '/',
   plugins: [react()],
   resolve: {
     alias: {
@@ -16,5 +17,8 @@ export default defineConfig({
   },
   esbuild: {
     loader: 'tsx'
+  },
+  define: {
+    'process.env': process.env
   }
 })
