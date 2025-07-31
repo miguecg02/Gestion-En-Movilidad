@@ -1,7 +1,6 @@
 [build]
-  base = "/client"       # Indica que el proyecto está en esta carpeta
   command = "cd client && npm install && npm run build"
-  publish = "client/dist"  # Ruta al build output
+  publish = "client/dist"
   functions = "netlify/functions"
 
 [[redirects]]
