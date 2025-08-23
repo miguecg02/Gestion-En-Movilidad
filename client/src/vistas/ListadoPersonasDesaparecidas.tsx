@@ -2,9 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
-import './ListadoPersonasMovilidad.css'; 
+import './ListadoPersonas.css';
 
-interface PersonaEnMovilidad {
+interface PersonaDesaparecida {
   idPersona: number;
   Nombre: string;
   PrimerApellido: string;
@@ -20,6 +20,7 @@ interface Nacionalidad {
   id: number;
   nacionalidad: string;
 }
+
 
 const useDebounce = (value: any, delay: number) => {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -37,9 +38,10 @@ const useDebounce = (value: any, delay: number) => {
   return debouncedValue;
 };
 
-const ListadoPersonasMovilidad = () => {
+
+const ListadoPersonasDesaparecidas = () => {
   const { user } = useAuth();
-  const [personas, setPersonas] = useState<PersonaEnMovilidad[]>([]);
+  const [personas, setPersonas] = useState<PersonaDesaparecida[]>([]);
   const [nacionalidades, setNacionalidades] = useState<Nacionalidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -50,8 +52,9 @@ const ListadoPersonasMovilidad = () => {
     paisDestino: ''
   });
   const navigate = useNavigate();
+ const debouncedFiltros = useDebounce(filtros, 500);
 
-  const debouncedFiltros = useDebounce(filtros, 500);
+
 
   useEffect(() => {
     const cargarNacionalidades = async () => {
@@ -71,12 +74,13 @@ const ListadoPersonasMovilidad = () => {
       try {
         setLoading(true);
         const params: any = {
-          Nombre: debouncedFiltros.nombre,
+         Nombre: debouncedFiltros.nombre,
           PrimerApellido: debouncedFiltros.apellido,
-          Situacion: 'En Movilidad',
+          Situacion: 'Desaparecida',
           Nacionalidad: debouncedFiltros.nacionalidad,
           PaisDestino: debouncedFiltros.paisDestino
         };
+        console.log('Parámetros enviados:', params); // ← Agrega esto
 
         if (user?.rol === 'Registrador') {
           params.idEntrevistador = user.id;
@@ -86,7 +90,7 @@ const ListadoPersonasMovilidad = () => {
         setPersonas(response.data);
         setError('');
       } catch (err) {
-        setError('Error al cargar las personas');
+        setError('Error al cargar las personas desaparecidas');
         console.error(err);
       } finally {
         setLoading(false);
@@ -100,24 +104,23 @@ const ListadoPersonasMovilidad = () => {
     const { name, value } = e.target;
     setFiltros(prev => ({ ...prev, [name]: value }));
   };
+  const handleEditar = (persona: PersonaDesaparecida) => {
+  if (user?.rol !== 'Coordinador') {
+    alert('Solo los coordinadores pueden editar registros');
+    return;
+  }
+  navigate(`/editar/${persona.idPersona}`);
+};
 
-  const handleVisualizar = (persona: PersonaEnMovilidad) => {
-    navigate(`/verEnMovilidad/${persona.idPersona}`);
-  };
 
-  const formatDate = (dateString: string) => {
+const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
-    return date.toLocaleDateString('es-ES');
-  };
+  return date.toLocaleDateString('es-ES');
+};
 
-
-  const handleEditar = (persona: PersonaEnMovilidad) => {
-    if (user?.rol !== 'Coordinador') {
-      alert('Solo los coordinadores pueden editar registros');
-      return;
-    }
-    navigate(`/editarEnMovilidad/${persona.idPersona}`);
+  const handleVisualizar = (persona: PersonaDesaparecida) => {
+    navigate(`/verDesaparecida/${persona.idPersona}`);
   };
 
   if (loading) return <div className="loading">Cargando...</div>;
@@ -125,7 +128,7 @@ const ListadoPersonasMovilidad = () => {
 
   return (
     <div className="listado-container">
-      <h2>Listado de Personas en Movilidad</h2>
+      <h2>Listado de Personas Desaparecidas</h2>
       
       <div className="filtros-container">
         <div className="filtros-row">
@@ -169,18 +172,18 @@ const ListadoPersonasMovilidad = () => {
         </div>
         
         <div className="filtros-row">
-         <div className="filtro-item">
-          <label>País Destino:</label>
-          <select 
-            name="paisDestino"
-            value={filtros.paisDestino} 
-            onChange={handleFiltroChange}
-          >
-            <option value="">Todos</option>
-            <option value="México">México</option>
-            <option value="Estados Unidos">Estados Unidos</option>
-          </select>
-        </div>
+          <div className="filtro-item">
+            <label>País Destino:</label>
+            <select 
+              name="paisDestino"
+              value={filtros.paisDestino} 
+              onChange={handleFiltroChange}
+            >
+              <option value="">Todos</option>
+              <option value="México">México</option>
+              <option value="Estados Unidos">Estados Unidos</option>
+            </select>
+          </div>
           
           <div className="filtro-item">
             <button 
@@ -207,64 +210,63 @@ const ListadoPersonasMovilidad = () => {
             <th>Primer Apellido</th>
             <th>Nacionalidad</th>
             <th>País Destino</th>
-            <th>Situación</th>
             <th>Última Comunicación</th>
             <th>Acciones</th>
+            {user?.rol === 'Coordinador' && <th>Editar</th>} {/* Add this column */}
           </tr>
         </thead>
         <tbody>
-          {personas.length === 0 ? (
-            <tr>
-              <td colSpan={9} className="no-results">
-                No se encontraron personas con los filtros aplicados
-              </td>
-            </tr>
+  {personas.length === 0 ? (
+    <tr>
+      <td colSpan={user?.rol === 'Coordinador' ? 9 : 8} className="no-results"> {/* Adjust colSpan */}
+        No se encontraron personas desaparecidas con los filtros aplicados
+      </td>
+    </tr>
+  ) : (
+    personas.map((persona) => (
+      <tr key={persona.idPersona}>
+        <td>
+          {persona.Imagen ? (
+            <img 
+              src={persona.Imagen} 
+              alt={`${persona.Nombre} ${persona.PrimerApellido}`}
+              className="persona-imagen"
+            />
           ) : (
-            personas.map((persona) => (
-              <tr key={persona.idPersona}>
-                <td>
-                  {persona.Imagen ? (
-                    <img 
-                      src={persona.Imagen} 
-                      alt={`${persona.Nombre} ${persona.PrimerApellido}`}
-                      className="persona-imagen"
-                    />
-                  ) : (
-                    <div className="imagen-placeholder">Sin imagen</div>
-                  )}
-                </td>
-                <td>{persona.idPersona}</td>
-                <td>{persona.Nombre}</td>
-                <td>{persona.PrimerApellido}</td>
-                <td>{persona.Nacionalidad || 'N/A'}</td>
-                <td>{persona.PaisDestino || 'N/A'}</td>
-                <td className={`situacion-${persona.Situacion.toLowerCase().replace(' ', '-')}`}>
-                  {persona.Situacion}
-                </td>
-               <td>{formatDate(persona.FechaUltimaComunicacion) || 'N/A'}</td>
-                <td>
-                  <button 
-                    className="btn-ver"
-                    onClick={() => handleVisualizar(persona)}
-                  >
-                    Visualizar
-                  </button>
-                  {user && user.rol === 'Coordinador' && (
-                    <button 
-                      className="btn-editar"
-                      onClick={() => handleEditar(persona)}
-                    >
-                      Editar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))
+            <div className="imagen-placeholder">Sin imagen</div>
           )}
-        </tbody>
+        </td>
+        <td>{persona.idPersona}</td>
+        <td>{persona.Nombre}</td>
+        <td>{persona.PrimerApellido}</td>
+        <td>{persona.Nacionalidad || 'N/A'}</td>
+        <td>{persona.PaisDestino || 'N/A'}</td>
+        <td>{formatDate(persona.FechaUltimaComunicacion) || 'N/A'}</td>
+        <td>
+          <button 
+            className="btn-ver"
+            onClick={() => handleVisualizar(persona)}
+          >
+            Visualizar
+          </button>
+        </td>
+      {user && user.rol === 'Coordinador' && (
+        <td>
+          <button 
+            className="btn-editar"
+            onClick={() => handleEditar(persona)}
+          >
+            Editar
+          </button>
+        </td>
+      )}
+      </tr>
+    ))
+  )}
+</tbody>
       </table>
     </div>
   );
 };
 
-export default ListadoPersonasMovilidad;
+export default ListadoPersonasDesaparecidas;

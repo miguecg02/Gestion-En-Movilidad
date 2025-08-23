@@ -3,6 +3,37 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+const NOTIFICACION_TIPOS = {
+  NUEVO_REGISTRO: 'nuevo_registro',
+  ACTUALIZACION: 'actualizacion',
+  ENCUENTRO: 'encuentro',
+  SISTEMA: 'sistema',
+  NUEVA_DESAPARECIDA: 'nueva_desaparecida',
+  CAMBIO_DESAPARECIDA: 'cambio_desaparecida'
+};
+
+// Agregar esta función al inicio del archivo
+const crearNotificacionParaCoordinadores = async (titulo, mensaje, tipo = 'sistema') => {
+  try {
+    const [coordinadores] = await db.query(
+      'SELECT idEntrevistador FROM Entrevistadores WHERE rol = "Coordinador"'
+    );
+
+    for (const coordinador of coordinadores) {
+      await db.query(
+        `INSERT INTO Notificaciones
+         (idEntrevistador, titulo, mensaje, tipo, fecha_creacion, leida)
+         VALUES (?, ?, ?, ?, NOW(), 0)`,
+        [coordinador.idEntrevistador, titulo, mensaje, tipo]
+      );
+    }
+  } catch (error) {
+    console.error('Error al crear notificaciones para coordinadores:', error);
+  }
+};
+
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // CREATE
 router.post('/', async (req, res) => {
@@ -14,6 +45,65 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Nombre y primer apellido son obligatorios' });
     }
 
+    
+
+    const [duplicateCheck] = await db.query(
+      'SELECT idPersona, Situacion FROM PersonaEnMovilidad WHERE Nombre = ? AND PrimerApellido = ?',
+      [d.Nombre, d.PrimerApellido]
+    );
+
+    // Get user role from token
+    let userRole = 'Registrador';
+    const authHeader = req.headers['authorization'];
+    
+    if (authHeader) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const [userRows] = await db.query(
+          'SELECT rol FROM Entrevistadores WHERE idEntrevistador = ?',
+          [decoded.userId]
+        );
+        if (userRows.length > 0) {
+          userRole = userRows[0].rol;
+        }
+      } catch (error) {
+        console.error('Error verifying token:', error);
+      }
+    }
+
+   
+    if (duplicateCheck.length > 0) {
+  const duplicado = duplicateCheck[0];
+  
+  // En el bloque de verificación de duplicados, modificar la sección de 'En Movilidad'
+  if (duplicado.Situacion === 'En Movilidad') {
+    if (userRole === 'Coordinador') {
+      return res.status(409).json({ 
+        error: 'DUPLICATE_MOBILITY', 
+        idPersona: duplicado.idPersona,
+        message: 'Persona encontrada en movilidad - redirigir a edición'
+      });
+    } else {
+      // CREAR NOTIFICACIÓN PARA COORDINADORES PERO PERMITIR EL REGISTRO
+      await crearNotificacionParaCoordinadores(
+        'Registro de persona en movilidad como desaparecida',
+        `Un registrador ha registrado a ${d.Nombre} ${d.PrimerApellido} que ya está registrado en movilidad.`,
+        NOTIFICACION_TIPOS.SISTEMA
+      );
+
+      // No retornamos error, continuamos con el registro
+      // break; // No break, simplemente continuamos
+    }
+  } else if (duplicado.Situacion === 'Desaparecida') {
+    return res.status(409).json({ 
+      error: 'DUPLICATE_MISSING', 
+      message: 'Ya existe una persona desaparecida con ese nombre y apellido'
+    });
+  }
+}
+
+    // If no duplicates or allowed to proceed, continue with insertion
     const formatDate = (date) => {
       if (!date) return null;
       return new Date(date).toISOString().slice(0, 19).replace('T', ' ');
@@ -140,10 +230,26 @@ router.post('/', async (req, res) => {
       )
     `;
 
-    console.log('Valores a insertar:', values);
     const [result] = await db.query(query, values);
+    
+    // Determinar tipo de notificación
+    const tipoNotificacion = d.Situacion === 'Desaparecida' 
+      ? NOTIFICACION_TIPOS.NUEVA_DESAPARECIDA 
+      : NOTIFICACION_TIPOS.NUEVO_REGISTRO;
+    
+    // Mensaje personalizado
+    const mensaje = d.Situacion === 'Desaparecida'
+      ? `Se ha registrado a ${d.Nombre} ${d.PrimerApellido} como persona desaparecida`
+      : `Se ha registrado a ${d.Nombre} ${d.PrimerApellido} como persona en movilidad`;
+
+    await crearNotificacionParaCoordinadores(
+      'Nuevo registro creado',
+      mensaje,
+      tipoNotificacion
+    );
+    
     res.status(201).json({ idPersona: result.insertId });
-  } catch (error) {
+  }catch (error) {
     console.error('Error al insertar datos:', error);
     res.status(500).json({ error: error.message });
   }
@@ -151,12 +257,14 @@ router.post('/', async (req, res) => {
 
 
 router.get('/', async (req, res) => {
-  try {
+ try {
     const { 
       Nombre = '', 
       PrimerApellido = '', 
       Situacion = '',
-      idEntrevistador = null
+      idEntrevistador = null,
+      Nacionalidad = '',
+      PaisDestino = ''
     } = req.query;
 
     let sql = `
@@ -175,48 +283,130 @@ router.get('/', async (req, res) => {
       params.push(Situacion);
     }
 
-    // Filtro por entrevistador si está presente
+    if (Nacionalidad) {
+      sql += ' AND Nacionalidad = ?';
+      params.push(Nacionalidad);
+    }
+
+    if (PaisDestino) {
+      sql += ' AND PaisDestino = ?';
+      params.push(PaisDestino);
+    }
+
     if (idEntrevistador) {
       sql += ' AND idEntrevistador = ?';
       params.push(idEntrevistador);
+    } else {
+      // Si no hay idEntrevistador, mostrar todas las situaciones
+      sql += ' AND (Situacion = "En Movilidad" OR Situacion = "Desaparecida")';
     }
 
     const [rows] = await db.query(sql, params);
     res.status(200).json(rows);
-  } catch (error) {
+  }  catch (error) {
     console.error('Error al obtener datos:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// READ one by ID
+
+// Cambiar el endpoint de encuentros-por-nombre
+router.get('/encuentros-por-nombre', async (req, res) => {
+  try {
+    const { nombre, apellido } = req.query;
+    
+    // Primero obtener todos los IDs de personas con ese nombre y apellido
+    const [personas] = await db.query(
+      "SELECT idPersona FROM PersonaEnMovilidad WHERE Nombre = ? AND PrimerApellido = ?",
+      [nombre, apellido]
+    );
+
+    if (personas.length === 0) {
+      return res.status(200).json([]);
+    }
+
+    const ids = personas.map(p => p.idPersona);
+    const placeholders = ids.map(() => '?').join(',');
+    
+    // Luego obtener todos los encuentros para esos IDs
+    const [rows] = await db.query(`
+      SELECT 
+        e.*, 
+        p.latitud, 
+        p.longitud,
+        p.descripcion AS lugar,
+        per.Nombre,
+        per.PrimerApellido,
+        per.SegundoApellido
+      FROM Encuentros e
+      JOIN PuntoGeografico p ON e.IdPunto = p.idPunto
+      JOIN PersonaEnMovilidad per ON e.IdPersona = per.idPersona
+      WHERE e.IdPersona IN (${placeholders})
+      ORDER BY e.Fecha DESC
+    `, ids);
+    
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error al obtener encuentros por nombre:', error);
+    res.status(500).json({ error: 'Error al obtener encuentros' });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
-    // Agregar Imagen a los campos seleccionados
-    const [rows] = await db.query(
-      'SELECT *, Imagen FROM PersonaEnMovilidad WHERE idPersona = ?', 
+    const [personaRows] = await db.query(
+      'SELECT * FROM PersonaEnMovilidad WHERE idPersona = ?', 
       [req.params.id]
     );
     
-    if (!rows.length) {
+    if (!personaRows.length) {
       return res.status(404).json({ error: 'Persona no encontrada' });
     }
     
-    // Convertir imagen BLOB a base64 si existe
-    const persona = rows[0];
-    if (persona.Imagen) {
+    const persona = personaRows[0];
+    
+    // Convertir imagen a base64
+    if (persona.Imagen && Buffer.isBuffer(persona.Imagen)) {
       persona.Imagen = `data:image/jpeg;base64,${persona.Imagen.toString('base64')}`;
     }
     
-    res.status(200).json(persona);
+    // Obtener información del grupo si existe
+    let grupoInfo = null;
+    if (persona.idGrupo) {
+      const [grupoRows] = await db.query(
+        'SELECT * FROM grupos WHERE idGrupo = ?',
+        [persona.idGrupo]
+      );
+      
+      if (grupoRows.length > 0) {
+        grupoInfo = grupoRows[0];
+        
+        // Obtener integrantes del grupo
+        const [integrantes] = await db.query(
+          'SELECT idPersona, Nombre, PrimerApellido, Imagen FROM PersonaEnMovilidad WHERE idGrupo = ?',
+          [persona.idGrupo]
+        );
+        
+        // Procesar imágenes
+        grupoInfo.integrantes = integrantes.map(p => ({
+          ...p,
+          Imagen: p.Imagen && Buffer.isBuffer(p.Imagen) 
+            ? `data:image/jpeg;base64,${p.Imagen.toString('base64')}` 
+            : null
+        }));
+      }
+    }
+    
+    res.status(200).json({ ...persona, grupoInfo });
   } catch (error) {
     console.error('Error al obtener persona por ID:', error);
     res.status(500).json({ error: error.message });
   }
 });
+
 // UPDATE
 router.put('/:id', async (req, res) => {
-  
+   const d = req.body;
   console.log('Situacion recibida:', req.body.Situacion);
   let values = [];
   try {
@@ -411,6 +601,21 @@ router.put('/:id', async (req, res) => {
         idEntrevistador = ? 
       WHERE idPersona = ?`;
 
+     // Obtener datos actuales ANTES de la actualización
+    const [currentRows] = await db.query(
+      'SELECT Situacion, Nombre, PrimerApellido FROM PersonaEnMovilidad WHERE idPersona = ?', 
+      [req.params.id]
+    );
+    
+    if (currentRows.length === 0) {
+      return res.status(404).json({ error: 'Persona no encontrada' });
+    }
+    
+    const oldSituacion = currentRows[0].Situacion || '';
+    const nombre = currentRows[0].Nombre;
+    const apellido = currentRows[0].PrimerApellido;
+
+    // Verificar parámetros (SOLO UNA VEZ)
     const paramCount = sql.split('?').length - 1;
     console.log(`Número de parámetros en SQL: ${paramCount}`);
     console.log(`Número de valores proporcionados: ${values.length}`);
@@ -420,13 +625,32 @@ router.put('/:id', async (req, res) => {
     }
 
     await db.query(sql, values);
-    res.status(200).json({ message: 'Persona actualizada con éxito' });
 
+    // Verificar cambio a "Desaparecida"
+    const nuevaSituacion = req.body.Situacion || '';
+    
+    if (oldSituacion !== 'Desaparecida' && nuevaSituacion === 'Desaparecida') {
+      await crearNotificacionParaCoordinadores(
+        'Persona reportada como desaparecida',
+        `${nombre} ${apellido} ha sido reportada como desaparecida`,
+        NOTIFICACION_TIPOS.CAMBIO_DESAPARECIDA
+      );
+    }
+    
+    // Notificación genérica de actualización
+    await crearNotificacionParaCoordinadores(
+      'Registro actualizado',
+      `Se ha actualizado la información de ${nombre} ${apellido}`,
+      NOTIFICACION_TIPOS.ACTUALIZACION
+    );
+    
+    res.status(200).json({ message: 'Persona actualizada con éxito' });
+  
   } catch (error) {
     console.error('Error al actualizar persona:', {
       message: error.message,
       sql: error.sql,
-      values: values || 'No definido' // Ahora values es accesible
+      values: values // values ya está definido en el scope exterior
     });
     
     res.status(500).json({ 
@@ -437,6 +661,43 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Obtener un grupo específico por ID
+router.get('/grupo/:idGrupo', async (req, res) => {
+  try {
+    const { idGrupo } = req.params;
+    
+    // Obtener información básica del grupo
+    const [grupoRows] = await db.query(
+      'SELECT * FROM grupos WHERE idGrupo = ?',
+      [idGrupo]
+    );
+    
+    if (grupoRows.length === 0) {
+      return res.status(404).json({ error: 'Grupo no encontrado' });
+    }
+    
+    const grupo = grupoRows[0];
+    
+    // Obtener integrantes del grupo
+    const [integrantes] = await db.query(
+      'SELECT idPersona, Nombre, PrimerApellido, Imagen FROM PersonaEnMovilidad WHERE idGrupo = ?',
+      [idGrupo]
+    );
+    
+    // Procesar imágenes de los integrantes
+    grupo.integrantes = integrantes.map(p => ({
+      ...p,
+      Imagen: p.Imagen && Buffer.isBuffer(p.Imagen) 
+        ? `data:image/jpeg;base64,${p.Imagen.toString('base64')}` 
+        : null
+    }));
+    
+    res.status(200).json(grupo);
+  } catch (error) {
+    console.error('Error al obtener grupo:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 //NATIONALITIES ENDPOINT
 router.get('/naciones/listado', async (req, res) => {
@@ -480,9 +741,10 @@ router.get('/entidades/listado', async (req, res) => {
   }
 });
 
+// routes/PersonaEnMovilidad.js
 router.get('/municipios/listado', async (req, res) => {
   try {
-    const { idNacionalidad } = req.query;
+    const { idNacionalidad, entidad } = req.query;
     const params = [];
     let sql = `
       SELECT municipio AS nombre 
@@ -495,20 +757,36 @@ router.get('/municipios/listado', async (req, res) => {
       params.push(Number(idNacionalidad));
     }
 
-    sql += ' ORDER BY entidad';
+    if (entidad) {
+      // Obtener el ID de la entidad primero
+      const [entidadRows] = await db.query(
+        'SELECT idEntidad FROM entidades WHERE entidad = ?',
+        [entidad]
+      );
+      
+      if (entidadRows.length > 0) {
+        sql += ' AND idEntidad = ?';
+        params.push(entidadRows[0].idEntidad);
+      } else {
+        // Si no se encuentra la entidad, devolver array vacío
+        return res.json([]);
+      }
+    }
+
+    sql += ' ORDER BY municipio';
 
     const [rows] = await db.query(sql, params);
-    res.json(rows); // [{ nombre: "Aguascalientes" }, ...]
+    res.json(rows);
   } catch (error) {
-    console.error('Error al obtener estados:', error);
-    res.status(500).json({ error: 'Error al obtener la lista de estados' });
+    console.error('Error al obtener municipios:', error);
+    res.status(500).json({ error: 'Error al obtener la lista de municipios' });
   }
 });
 
 
 router.post('/encuentros', async (req, res) => {
   try {
-    const { idPersona, idEntrevistador, idPunto, observaciones, fecha } = req.body;
+     const { idPersona, idEntrevistador, idPunto, observaciones, fecha } = req.body;
 
     // Convertir fecha ISO a formato MySQL
     const fechaMySQL = fecha ? new Date(fecha).toISOString().slice(0, 19).replace('T', ' ') : null;
@@ -518,16 +796,32 @@ router.post('/encuentros', async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos obligatorios' });
     }
 
-    const [result] = await db.query(
+     const [result] = await db.query(
       'INSERT INTO Encuentros (IdPersona, IdEntrevistador, IdPunto, Observaciones, Fecha) VALUES (?, ?, ?, ?, ?)',
       [idPersona, idEntrevistador, idPunto, observaciones, fechaMySQL]
     );
-
+    
+    // Obtener nombre de la persona para la notificación
+    const [persona] = await db.query(
+      'SELECT Nombre, PrimerApellido FROM PersonaEnMovilidad WHERE idPersona = ?',
+      [idPersona]
+    );
+    const nombrePersona = persona.length > 0 
+      ? `${persona[0].Nombre} ${persona[0].PrimerApellido}` 
+      : `ID ${idPersona}`;
+    
+    // Crear notificación para todos los coordinadores
+    await crearNotificacionParaCoordinadores(
+      'Nuevo encuentro registrado',
+      `Se ha registrado un nuevo encuentro para ${nombrePersona}`,
+      NOTIFICACION_TIPOS.ENCUENTRO
+    );
+    
     res.status(201).json({
       message: 'Encuentro registrado con éxito',
       idEncuentro: result.insertId,
     });
-  } catch (error) {
+  }catch (error) {
     console.error('Error:', error);
     res.status(500).json({
       error: 'Error al registrar encuentro',
@@ -536,8 +830,6 @@ router.post('/encuentros', async (req, res) => {
   }
 });
 
-// Actualizar el endpoint de encuentros
-// Modificar este endpoint
 router.get('/:id/encuentros', async (req, res) => {
   try {
     const { id } = req.params;
@@ -633,6 +925,8 @@ router.get('/', async (req, res) => {
 });
 
 
+
+
 router.get('/entrevistadores/:id', async (req, res) => {
   try {
     const idEntrevistador = parseInt(req.params.id);
@@ -669,13 +963,81 @@ router.get('/entrevistadores/:id', async (req, res) => {
     });
   }
 });
-router.put('entrevistadores/:id', async (req, res) => {
+
+
+// Agregar nuevo endpoint para obtener grupos de personas
+router.get('/grupos', async (req, res) => {
+  try {
+    const { nombre = '', apellido = '', situacion = '' } = req.query;
+    
+    const [rows] = await db.query(`
+      SELECT 
+        Nombre, 
+        PrimerApellido,
+        COUNT(*) as total,
+        GROUP_CONCAT(idPersona) as ids,
+        MAX(Imagen) as Imagen,
+        MAX(Nacionalidad) as Nacionalidad,
+        MAX(PaisDestino) as PaisDestino,
+        MAX(Situacion) as Situacion,
+        MAX(FechaUltimaComunicacion) as FechaUltimaComunicacion
+      FROM PersonaEnMovilidad
+      WHERE Nombre LIKE ? 
+        AND PrimerApellido LIKE ?
+        AND Situacion LIKE ?
+      GROUP BY Nombre, PrimerApellido
+      ORDER BY Nombre, PrimerApellido
+    `, [
+      `%${nombre}%`,
+      `%${apellido}%`,
+      `%${situacion}%`
+    ]);
+
+    // Formatear los IDs como array
+    const grupos = rows.map(grupo => ({
+      ...grupo,
+      ids: grupo.ids.split(',').map(id => parseInt(id))
+    }));
+
+    res.status(200).json(grupos);
+  } catch (error) {
+    console.error('Error al obtener grupos:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Modificar el endpoint de encuentros para aceptar múltiples IDs
+router.get('/encuentros/multi', async (req, res) => {
+  try {
+    const ids = req.query.ids.split(',').map(id => parseInt(id));
+    
+    const [rows] = await db.query(`
+      SELECT 
+        e.*,
+        p.latitud,
+        p.longitud,
+        p.descripcion AS lugar
+      FROM Encuentros e
+      JOIN PuntoGeografico p ON e.IdPunto = p.idPunto
+      WHERE e.IdPersona IN (?)
+      ORDER BY e.Fecha DESC
+    `, [ids]);
+
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error al obtener encuentros múltiples:', error);
+    res.status(500).json({ error: 'Error al obtener encuentros' });
+  }
+});
+
+router.put('/entrevistadores/:id', async (req, res) => {
   try {
     const idEntrevistador = parseInt(req.params.id);
     if (isNaN(idEntrevistador)) {
       return res.status(400).json({ error: 'ID no válido' });
     }
 
+    
     const { nombre, telefono, organizacion, fecha_nacimiento } = req.body;
 
     const [result] = await db.query(
@@ -722,6 +1084,8 @@ router.put('entrevistadores/:id', async (req, res) => {
     });
   }
 });
+
+
 
 
 

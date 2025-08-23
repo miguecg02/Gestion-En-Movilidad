@@ -29,39 +29,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAuthenticated = Boolean(token);
 
   useEffect(() => {
-    if (token && user) {
-      sessionStorage.setItem("token", token);
-      sessionStorage.setItem("user", JSON.stringify(user));
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    } else {
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [token, user]);
+  if (token) {
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    sessionStorage.setItem("token", token);
+  } else {
+    delete axios.defaults.headers.common["Authorization"];
+    sessionStorage.removeItem("token");
+  }
+}, [token]);
 
-  const login = async (email: string, password: string) => {
+ interface UserData {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: string; 
+}
+
+const login = async (email: string, password: string) => {
   try {
-    const response = await axios.post("http://localhost:3001/api/login", { email, password });
-    const { token: authToken, userId, nombre, rol } = response.data; // Asegurar que se recibe el rol
+    // Usar variable de entorno para la URL base
+     const baseUrl = window.location.hostname.includes('localhost') 
+      ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001')
+      : 'https://gestion-en-movilidad-backend.vercel.app';
 
+    const response = await axios.post(`${baseUrl}/api/login`, { email, password });
+    
+    const { token: authToken, userId, nombre, rol } = response.data;
+    
     setToken(authToken);
     setUser({
       id: userId,
       nombre,
       email,
-      rol // Guardar el rol en el estado
+      rol
     });
-  }  catch (error: any) {
-    // ... manejo de errores ...
+
+    return rol;
+  } catch (error: any) {
+    console.error("Login error:", error);
+    if (error.response) {
+      throw new Error(error.response.data.error || "Error de autenticación");
+    } else {
+      throw new Error("Error de conexión con el servidor");
+    }
   }
 };
 
-  const logout = () => {
-    
-    setToken(null);
-    setUser(null);
-  };
+// En AuthContext.tsx
+const logout = () => {
+  setToken(null);
+  setUser(null);
+  // Limpiar sessionStorage
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("user");
+  // Eliminar el header de axios
+  delete axios.defaults.headers.common["Authorization"];
+};
 
   return (
     <AuthContext.Provider value={{ token, user, login, logout, isAuthenticated }}>

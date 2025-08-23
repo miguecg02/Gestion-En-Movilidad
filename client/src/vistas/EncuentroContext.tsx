@@ -75,36 +75,34 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
 };
 
   const iniciarEncuentro = async (observaciones: string) => {
-    try {
-      // 1. Obtener ubicación actual
-      const ubicacion = await obtenerUbicacion();
-      
-      // 2. Registrar el punto geográfico en el backend
-      const puntoResponse = await axios.post('http://localhost:3001/api/personas/puntos', {
-        latitud: ubicacion.latitud,
-        longitud: ubicacion.longitud, // Nota: en tu backend longitud es realmente longitud
-        descripcion: ubicacion.descripcion,
-        
-      });
+  try {
+    // 1. Obtener ubicación actual
+    const ubicacion = await obtenerUbicacion();
+    
+    // 2. Registrar el punto geográfico en el backend
+    const puntoResponse = await axios.post('http://localhost:3001/api/personas/puntos', {
+      latitud: ubicacion.latitud,
+      longitud: ubicacion.longitud,
+      descripcion: ubicacion.descripcion,
+    });
 
-      const idPunto = puntoResponse.data.idPunto;
+    const idPunto = puntoResponse.data.idPunto;
 
-      // 3. Crear el encuentro activo en el estado
-      const nuevoEncuentro: EncuentroActivo = {
-        idEncuentro: null, // Se asignará cuando se registre una persona
-        idPunto,
-        ubicacion,
-        fecha: new Date().toISOString(),
-        observaciones,
-      };
+    // 3. Crear el encuentro activo en el estado
+    const nuevoEncuentro: EncuentroActivo = {
+      idEncuentro: null,
+      idPunto, // Guardar el ID del punto
+      ubicacion,
+      fecha: new Date().toISOString(),
+      observaciones,
+    };
 
-      setEncuentroActivo(nuevoEncuentro);
-    } catch (error) {
-      console.error('Error iniciando encuentro:', error);
-      throw error;
-    }
-  };
-
+    setEncuentroActivo(nuevoEncuentro);
+  } catch (error) {
+    console.error('Error iniciando encuentro:', error);
+    throw error;
+  }
+};
   const finalizarEncuentro = () => {
     setEncuentroActivo(null);
   };

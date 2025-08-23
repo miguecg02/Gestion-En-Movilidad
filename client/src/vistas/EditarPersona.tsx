@@ -280,7 +280,7 @@ const EditarPersona: React.FC = () => {
       'MesesEmbarazo'
     ] as (keyof PersonaData)[];
 
-    const payload = { ...formData, Situacion: 'Desaparecido' } as any;
+    const payload = { ...formData, Situacion: 'Desaparecida' } as any;
 
     numericKeys.forEach((k) => {
       payload[k] = payload[k] === '' ? null : Number(payload[k]);

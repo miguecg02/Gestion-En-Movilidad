@@ -1,11 +1,12 @@
+// VerPersonaDesaparecida.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
-import { useAuth } from '../AuthContext';
+import 'leaflet/dist/leaflet.css';
 import './VerPersonaEnMovilidad.css';
 
+// Configurar ícono personalizado para Leaflet
 const customIcon = new L.Icon({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -16,6 +17,23 @@ const customIcon = new L.Icon({
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41]
 });
+
+// Interfaces para tipos de datos
+interface GrupoInfo {
+  idGrupo: number;
+  NombreGrupo: string;
+  FechaCreacion: string;
+  NombreEncargado: string;
+  LugarCreacion: string;
+  integrantes: Integrante[];
+}
+
+interface Integrante {
+  idPersona: number;
+  Nombre: string;
+  PrimerApellido: string;
+  Imagen: string | null;
+}
 
 const fieldLabels: Record<string, string> = {
   Nombre: 'Nombre',
@@ -109,44 +127,17 @@ const fieldLabels: Record<string, string> = {
   Situacion: 'Situación',
   Edad: 'Edad',
 };
-// URL base de la API (ajustar según el entorno)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-// Definir interfaces para los tipos de datos
-interface GrupoInfo {
-  idGrupo: number;
-  NombreGrupo: string;
-  FechaCreacion: string;
-  NombreEncargado: string;
-  LugarCreacion: string;
-  integrantes: Integrante[];
-}
-
-interface Integrante {
-  idPersona: number;
-  Nombre: string;
-  PrimerApellido: string;
-  Imagen: string | null;
-}
-
-// Función para formatear nombres de campos con espacios
-const formatLabel = (key: string) => {
-  return fieldLabels[key] || key
-    .replace(/([A-Z])/g, ' $1') // Agrega espacio antes de mayúsculas
-    .replace(/^./, str => str.toUpperCase()) // Primera letra mayúscula
-    .trim();
-};
-
-const VerPersonaEnMovilidad = () => {
+const VerPersonaDesaparecida = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [persona, setPersona] = useState<any>(null);
-  const [encuentros, setEncuentros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
+  const [coordenadas, setCoordenadas] = useState<[number, number] | null>(null);
+  const [encuentros, setEncuentros] = useState<any[]>([]);
   const [grupoInfo, setGrupoInfo] = useState<GrupoInfo | null>(null);
-  const { user } = useAuth(); // Obtener información del usuario
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,52 +145,24 @@ const VerPersonaEnMovilidad = () => {
         setLoading(true);
         setError('');
         
-        // 1. Obtener datos de la persona
-        const personaResponse = await fetch(`${API_BASE_URL}/personas/${id}`);
+        // Obtener datos de la persona
+        const response = await fetch(`http://localhost:3001/api/personas/${id}`);
         
-        if (!personaResponse.ok) {
-          if (personaResponse.status === 404) {
+        if (!response.ok) {
+          if (response.status === 404) {
             throw new Error('Persona no encontrada');
           }
           throw new Error('Error al obtener datos de la persona');
         }
         
-        let personaData = await personaResponse.json();
-        
-        // Calcular edad a partir de FechaNacimiento si está disponible
-        if (personaData.FechaNacimiento) {
-          const birthDate = new Date(personaData.FechaNacimiento);
-          const today = new Date();
-          let age = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-          
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-            age--;
-          }
-          personaData.Edad = age;
-        } else {
-          personaData.Edad = 'N/A';
-        }
-        
+        const personaData = await response.json();
         setPersona(personaData);
         
-        // 2. Obtener encuentros asociados a la persona
-        const encuentrosResponse = await fetch(`${API_BASE_URL}/personas/${id}/encuentros`);
-        
-        if (!encuentrosResponse.ok) {
-          if (encuentrosResponse.status === 404) {
-            setEncuentros([]);
-          } else {
-            throw new Error('Error al obtener encuentros');
-          }
-        } else {
-          const encuentrosData = await encuentrosResponse.json();
-          setEncuentros(encuentrosData);
-        }
-        
-        // 3. Obtener información del grupo si existe
+        // Obtener información del grupo si existe
         if (personaData.idGrupo) {
-          const grupoResponse = await fetch(`${API_BASE_URL}/personas/grupo/${personaData.idGrupo}`);
+          const grupoResponse = await fetch(
+            `http://localhost:3001/api/personas/grupo/${personaData.idGrupo}`
+          );
           
           if (grupoResponse.ok) {
             const grupoData = await grupoResponse.json();
@@ -207,9 +170,24 @@ const VerPersonaEnMovilidad = () => {
           }
         }
         
+        // Obtener encuentros por nombre y apellido
+        const encuentrosResponse = await fetch(
+          `http://localhost:3001/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}`
+        );
+        
+        if (encuentrosResponse.ok) {
+          const encuentrosData = await encuentrosResponse.json();
+          setEncuentros(encuentrosData);
+        }
+        
+        // Geocodificación para obtener coordenadas de pérdida de contacto
+        if (personaData.PaisPerdidaContacto || personaData.EstadoPerdidaContacto || personaData.LocalidadPerdidaContacto) {
+          await obtenerCoordenadas(personaData);
+        }
+        
       } catch (err: any) {
         console.error('Error al obtener datos:', err);
-        setError(err.message || 'Error al cargar los datos. Por favor, intente de nuevo más tarde.');
+        setError(err.message || 'Error al cargar los datos');
       } finally {
         setLoading(false);
       }
@@ -218,8 +196,36 @@ const VerPersonaEnMovilidad = () => {
     fetchData();
   }, [id]);
 
-  // Procesamiento robusto de coordenadas
-  const coordenadas = useMemo(() => {
+  const obtenerCoordenadas = async (personaData: any) => {
+    try {
+      // Construir dirección para geocodificación
+      const direccion = [
+        personaData.LocalidadPerdidaContacto,
+        personaData.EstadoPerdidaContacto,
+        personaData.PaisPerdidaContacto
+      ].filter(Boolean).join(', ');
+
+      if (!direccion) return;
+
+      // Usar Nominatim para geocodificación
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.length > 0) {
+          const { lat, lon } = data[0];
+          setCoordenadas([parseFloat(lat), parseFloat(lon)]);
+        }
+      }
+    } catch (error) {
+      console.error('Error en geocodificación:', error);
+    }
+  };
+
+  // Procesar coordenadas de encuentros
+  const coordenadasEncuentros = useMemo(() => {
     return encuentros
       .filter(e => e.latitud && e.longitud)
       .map(e => {
@@ -230,9 +236,13 @@ const VerPersonaEnMovilidad = () => {
       .filter(coord => coord !== null) as [number, number][];
   }, [encuentros]);
 
-  const tieneRuta = coordenadas.length > 1;
+  const formatLabel = (key: string) => {
+    return fieldLabels[key] || key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+  };
 
-  // Formateo seguro de fechas
   const formatDate = (dateString: string) => {
     try {
       const date = new Date(dateString);
@@ -275,7 +285,7 @@ const VerPersonaEnMovilidad = () => {
   return (
     <div className="ver-persona-container">
       <div className="header-section">
-        <h1>Detalle de Persona en Movilidad</h1>
+        <h1>Detalle de Persona Desaparecida</h1>
         <button className="back-button" onClick={() => navigate(-1)}>
           &larr; Volver
         </button>
@@ -297,7 +307,7 @@ const VerPersonaEnMovilidad = () => {
           
           <div>
             <h2>{persona.Nombre} {persona.PrimerApellido}</h2>
-            <span className={`status-badge ${persona.Situacion.toLowerCase().replace(' ', '-')}`}>
+            <span className={`status-badge desaparecida`}>
               {persona.Situacion}
             </span>
           </div>
@@ -305,7 +315,10 @@ const VerPersonaEnMovilidad = () => {
         
         <div className="info-grid">
           {Object.entries(persona)
-            .filter(([key]) => !['Imagen', 'idPersona', 'idEntrevistador', 'idGrupo', 'grupoInfo'].includes(key))
+            .filter(([key, value]) => 
+              !['Imagen', 'idPersona', 'idEntrevistador', 'idGrupo', 'grupoInfo'].includes(key) &&
+              value !== null && value !== undefined && value !== '' && value !== 'N/A' && value !== 0
+            )
             .map(([key, value]) => {
               // Formatear fechas
               if (typeof value === 'string' && value.includes('-') && key.toLowerCase().includes('fecha')) {
@@ -317,18 +330,10 @@ const VerPersonaEnMovilidad = () => {
                 value = value ? 'Sí' : 'No';
               }
               
-              // Manejar valores vacíos
-              if (value === null || value === undefined || value === '' || value === 0) {
-                value = 'N/A';
-              }
-              
-              // Omitir campos con valor 'N/A'
-              if (value === 'N/A') return null;
-              
               return (
                 <div className="info-item" key={key}>
-                  <span className="info-label">{formatLabel(key) +":" + " " }</span>
-                  <span className="info-value">{String(value) }</span>
+                  <span className="info-label">{formatLabel(key)}:</span>
+                  <span className="info-value">{String(value)}</span>
                 </div>
               );
             })}
@@ -367,7 +372,7 @@ const VerPersonaEnMovilidad = () => {
                 <div className="integrante-info">
                   <h4>{integrante.Nombre} {integrante.PrimerApellido}</h4>
                   <button 
-                    onClick={() => navigate(`/verEnMovilidad/${integrante.idPersona}`)}
+                    onClick={() => navigate(`/verDesaparecida/${integrante.idPersona}`)}
                     className="btn-ver-integrante"
                   >
                     Ver detalle
@@ -379,15 +384,16 @@ const VerPersonaEnMovilidad = () => {
         </div>
       )}
 
-      <div className="route-section">
+      {/* Mapa de ubicación de pérdida de contacto y encuentros */}
+      <div className="map-section">
         <div className="section-header">
-          <h2>Ruta de Movilidad</h2>
+          <h2>Ubicación de Pérdida de Contacto y Encuentros Relacionados</h2>
           <div className="stats-badge">
-            {encuentros.length} encuentro{encuentros.length !== 1 ? 's' : ''} registrado{encuentros.length !== 1 ? 's' : ''}
+            {encuentros.length} encuentro{encuentros.length !== 1 ? 's' : ''} relacionado{encuentros.length !== 1 ? 's' : ''}
           </div>
         </div>
         
-        {coordenadas.length === 0 ? (
+        {!coordenadas && coordenadasEncuentros.length === 0 ? (
           <div className="no-data-message">
             <div className="map-placeholder">🗺️</div>
             <p>No se encontraron datos de ubicación para esta persona</p>
@@ -395,9 +401,9 @@ const VerPersonaEnMovilidad = () => {
         ) : (
           <div className="map-container">
             <MapContainer 
-              center={coordenadas[0]} 
-              zoom={tieneRuta ? 12 : 14} 
-              style={{ height: '450px', width: '100%' }}
+              center={coordenadas || (coordenadasEncuentros.length > 0 ? coordenadasEncuentros[0] : [0, 0])} 
+              zoom={12} 
+              style={{ height: '500px', width: '100%' }}
               whenReady={() => setTimeout(() => setMapReady(true), 100)}
             >
               <TileLayer
@@ -405,61 +411,62 @@ const VerPersonaEnMovilidad = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
               
-              {/* Línea de ruta */}
-              {tieneRuta && (
-                <Polyline 
-                  positions={coordenadas} 
-                  color="#3498db" 
-                  weight={4}
-                  opacity={0.7}
-                />
-              )}
-              
-              {/* Marcadores con ícono personalizado */}
-              {coordenadas.map((coord, index) => (
-                <Marker 
-                  key={index} 
-                  position={coord}
-                  icon={customIcon}
-                >
+              {/* Marcador de ubicación de pérdida de contacto */}
+              {coordenadas && (
+                <Marker position={coordenadas} icon={customIcon}>
                   <Popup>
                     <div className="popup-content">
-                      <strong>Punto {index + 1}</strong>
-                      <p>{encuentros[index]?.lugar || 'Ubicación desconocida'}</p>
-                      <p>Fecha: {formatDate(encuentros[index]?.fecha)}</p>
+                      <strong>Ubicación de pérdida de contacto</strong>
+                      <p>{persona.LocalidadPerdidaContacto || 'Ubicación desconocida'}</p>
+                      <p>Fecha: {formatDate(persona.FechaUltimaComunicacion)}</p>
                     </div>
                   </Popup>
                 </Marker>
-              ))}
+              )}
+              
+              {/* Marcadores de encuentros */}
+              {coordenadasEncuentros.map((coord, index) => {
+                const encuentro = encuentros[index];
+                return (
+                  <Marker 
+                    key={index} 
+                    position={coord}
+                    icon={customIcon}
+                  >
+                    <Popup>
+                      <div className="popup-content">
+                        <strong>Encuentro registrado</strong>
+                        <p><strong>Lugar:</strong> {encuentro.lugar || 'Ubicación desconocida'}</p>
+                        <p><strong>Fecha:</strong> {formatDate(encuentro.Fecha)}</p>
+                        <p><strong>Observaciones:</strong> {encuentro.Observaciones}</p>
+                        <p><strong>Situación:</strong> {encuentro.Situacion || 'En Movilidad'}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
             </MapContainer>
             
-            {!mapReady && (
-              <div className="map-loading-overlay">
-                <div className="spinner"></div>
-                <p>Cargando mapa...</p>
-              </div>
-            )}
-            
-            <div className="route-info">
-              <div className="info-card">
-                <h4>Resumen de Ruta</h4>
-                <p><strong>Puntos mapeados:</strong> {coordenadas.length}</p>
-                <p><strong>Primer encuentro:</strong> {formatDate(encuentros[0]?.fecha)}</p>
-                <p><strong>Último encuentro:</strong> {formatDate(encuentros[encuentros.length - 1]?.fecha)}</p>
+            <div className="location-info">
+              <h3>Información de ubicación</h3>
+              <p><strong>País:</strong> {persona.PaisPerdidaContacto || 'N/A'}</p>
+              <p><strong>Estado:</strong> {persona.EstadoPerdidaContacto || 'N/A'}</p>
+              <p><strong>Localidad:</strong> {persona.LocalidadPerdidaContacto || 'N/A'}</p>
+              <p><strong>Fecha última comunicación:</strong> {formatDate(persona.FechaUltimaComunicacion)}</p>
+              
+              <div className="encuentros-info">
+                <h4>Encuentros Relacionados</h4>
+                <p>Se han encontrado {encuentros.length} encuentros registrados para personas con el mismo nombre y apellido.</p>
+                {encuentros.length > 0 && (
+                  <button 
+                    onClick={() => navigate(`/todos-encuentros/${persona.Nombre}/${persona.PrimerApellido}`)}
+                    className="btn-ver-todos"
+                  >
+                    Ver todos los encuentros en detalle
+                  </button>
+                )}
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Botón para ver todos los encuentros (solo coordinadores) */}
-        {user?.rol === 'Coordinador' && (
-          <div style={{ marginTop: '20px', textAlign: 'center' }}>
-            <button 
-              onClick={() => navigate(`/todos-encuentros/${persona.Nombre}/${persona.PrimerApellido}`)}
-              className="btn-ver-todos"
-            >
-              Ver todos los encuentros
-            </button>
           </div>
         )}
       </div>
@@ -467,4 +474,4 @@ const VerPersonaEnMovilidad = () => {
   );
 };
 
-export default VerPersonaEnMovilidad;
+export default VerPersonaDesaparecida;

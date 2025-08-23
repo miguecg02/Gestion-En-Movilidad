@@ -2,7 +2,7 @@
 const mysql = require('mysql2/promise');
 
 const pool = mysql.createPool({
-  host: '127.0.0.1',    // forzamos TCP
+  host: '127.0.0.1',   
   port: 3306,           // puerto por defecto de MySQL
   user: 'myUserBD',
   password: '2002',

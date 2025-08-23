@@ -4,6 +4,7 @@ import type { ChangeEvent, FormEvent } from 'react';
 import './FormularioDesaparecida.css';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../AuthContext';
 
 
 // Tipos e interfaces
@@ -600,6 +601,7 @@ const DateField: React.FC<DateFieldProps> = ({ name, formData, setFormData }) =>
 const FormularioDesaparecida: React.FC = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const fetchNacionalidades = async () => {
   try {
@@ -645,9 +647,8 @@ const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[
     });
   }, [formData.PaisDestino]);
 
-  const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
+ const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   if (formData.PaisDestino === 'México') {
-    // llama a tu API de entidades
     const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1');
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
@@ -657,40 +658,33 @@ const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
-  return []; // puede devolver vacíos si es “Otro” o “No sabe”
+  return [];
 }, [formData.PaisDestino]);
 
-
 const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:string;label:string;}[]> => {
-  if (formData.PaisDestino === 'México') {
-    // llama a tu API de entidades
-    const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1');
+  if (formData.PaisPerdidaContacto === 'México' && formData.EstadoPerdidaContacto) {
+    const res = await fetch(`http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1&entidad=${encodeURIComponent(formData.EstadoPerdidaContacto)}`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
-  if (formData.PaisDestino === 'Estados Unidos') {
-    const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=2');
-    const data: { nombre: string }[] = await res.json();
-    return data.map(e => ({ value: e.nombre, label: e.nombre }));
-  }
-  return []; // puede devolver vacíos si es “Otro” o “No sabe”
-}, [formData.PaisPerdidaContacto]);
+  return []; // Return empty array for non-Mexico countries
+}, [formData.PaisPerdidaContacto, formData.EstadoPerdidaContacto]);
 
 
   useEffect(() => {
     setFormData(prev => {
       const updates: Partial<FormData> = {};
 
-      if (prev.PaisDestino === 'Estados Unidos' && prev.PuntoEntradaMex) {
+      if (prev.PaisPerdidaContacto === 'Estados Unidos' && prev.PuntoEntradaMex) {
         updates.PuntoEntradaMex = '';
       }
-      if (prev.PaisDestino === 'México' && prev.PuntoEntradaUSA) {
+      if (prev.PaisPerdidaContacto === 'México' && prev.PuntoEntradaUSA) {
         updates.PuntoEntradaUSA = '';
       }
 
       return Object.keys(updates).length ? { ...prev, ...updates } : prev;
     });
-  }, [formData.PaisDestino]);
+  }, [formData.PaisPerdidaContacto]);
 
 
 
@@ -757,13 +751,18 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
     );
 
     if (duplicado) {
-      if (duplicado.Situacion === 'En Movilidad') {
+    if (duplicado.Situacion === 'En Movilidad') {
+      // Only redirect if user is a coordinator
+      if (user?.rol === 'Coordinador') {
         navigate(`/editar/${duplicado.idPersona}`);
         return;
       }
+      // For non-coordinators, continue with the registration
+    } else {
       alert("Ya existe un registro con ese nombre y primer apellido.");
       return;
     }
+  }
 
     // Crear nueva persona
     const dataToSend = { ...formData, Situacion: 'Desaparecida' };
@@ -788,6 +787,8 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
     }
     return;
     }
+
+    
   }  catch (err) {
   if (err instanceof Error) {
     if (err.message.includes('PayloadTooLargeError')) {
@@ -842,6 +843,13 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
           );
         })}
 
+        <TextField
+        name="LocalidadOrigen"
+        formData={formData}
+        handleChange={handleChange}
+        type="text"
+      />
+
         <SelectField
         name="Nacionalidad"
         formData={formData}
@@ -872,13 +880,22 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
         />
 
 
+       {formData.PaisDestino === 'México' ? (
         <SelectField
           name="LocalidadDestino"
           formData={formData}
           handleChange={handleChange}
           fetchOptions={fetchLocalidades}
-          disabled={!['México', 'Estados Unidos'].includes(formData.PaisDestino)}
+          disabled={!formData.PaisDestino}
         />
+      ) : (
+        <TextField
+          name="LocalidadDestino"
+          formData={formData}
+          handleChange={handleChange}
+          type="text"
+        />
+      )}
 
         <SelectField
           name="PuntoEntradaMex"
@@ -1085,13 +1102,23 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
           disabled={!['México', 'Estados Unidos'].includes(formData.PaisPerdidaContacto)}
         />
 
-          <SelectField
+        
+          {formData.PaisPerdidaContacto === 'Estados Unidos' ? (
+        <TextField
+          name="LocalidadPerdidaContacto"
+          formData={formData}
+          handleChange={handleChange}
+          type="text"
+        />
+      ) : (
+        <SelectField
           name="LocalidadPerdidaContacto"
           formData={formData}
           handleChange={handleChange}
           fetchOptions={fetchLocalidadesPerdidaContacto}
           disabled={!['México', 'Estados Unidos'].includes(formData.PaisPerdidaContacto)}
         />
+      )}
 
         <button type="submit">Registrar</button>
       </form>

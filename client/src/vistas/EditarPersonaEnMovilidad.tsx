@@ -170,25 +170,30 @@ const EditarPersona: React.FC = () => {
 
       const data = await res.json();
       
-      // Filtramos "Situacion" para que no se incluya en el estado
-      const { Situacion, ...filteredData } = data; // <-- Excluimos Situacion
-      
+      // Normalize all fields including dates and numbers
       const normalizedData: PersonaData = { ...initialData };
-
+      
       Object.keys(initialData).forEach((key) => {
         const field = key as keyof PersonaData;
-        if (filteredData[field] !== undefined && filteredData[field] !== null) {
-          if (/^Fecha/.test(key) && filteredData[field]) {
-            const dateValue = new Date(filteredData[field] as string);
+        if (data[field] !== undefined && data[field] !== null) {
+          // Handle date fields
+          if (/^Fecha/.test(key) && data[field]) {
+            const dateValue = new Date(data[field] as string);
             normalizedData[field] = !isNaN(dateValue.getTime())
               ? dateValue.toISOString().split('T')[0]
-              : (filteredData[field] as string);
-          } else if (
-            ['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'].includes(key)
-          ) {
-            normalizedData[field] = filteredData[field]?.toString() || '';
-          } else {
-            normalizedData[field] = filteredData[field] as string;
+              : (data[field] as string);
+          } 
+          // Handle numeric fields
+          else if (['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'].includes(key)) {
+            normalizedData[field] = data[field]?.toString() || '';
+          }
+          // Handle boolean fields
+          else if (typeof data[field] === 'boolean') {
+            normalizedData[field] = data[field] ? 'Sí' : 'No';
+          }
+          // All other fields
+          else {
+            normalizedData[field] = data[field] as string;
           }
         }
       });
@@ -217,28 +222,32 @@ const EditarPersona: React.FC = () => {
 
   setSaving(true);
 
-  const numericKeys: (keyof PersonaData)[] = [
-    'EdadMigracion',
-    'NumeroMigraciones',
-    'Estatura',
-    'Peso',
-    'MesesEmbarazo'
-  ];
-
-  const payload = { ...formData, Situacion: 'En Movilidad' } as any;
-  numericKeys.forEach((k) => {
-    payload[k] = payload[k] === '' ? null : Number(payload[k]);
-  });
-  
-  const dateKeys = Object.keys(formData)
-    .filter(k => /^Fecha/.test(k)) as (keyof PersonaData)[];
-
-  dateKeys.forEach(k => {
-    if (payload[k] === '') payload[k] = null;
-  });
-
   try {
-    
+    // Prepare payload with proper data types
+    const payload: any = { ...formData, Situacion: 'En Movilidad' };
+
+    // Convert numeric fields
+    const numericKeys = ['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'];
+    numericKeys.forEach((k) => {
+      const key = k as keyof PersonaData;
+      payload[key] = formData[key] === '' ? null : Number(formData[key]);
+    });
+
+    // Convert date fields
+    const dateKeys = Object.keys(formData).filter(k => /^Fecha/.test(k)) as (keyof PersonaData)[];
+    dateKeys.forEach(k => {
+      payload[k] = formData[k] === '' ? null : new Date(formData[k] as string).toISOString();
+    });
+
+    // Convert boolean fields
+    const booleanFields = ['ViajaConIdentificacion', 'HablaEspanol', 'OtrosIdiomas', 'DeportadaAnteriormente', 
+                          'Encarcelado', 'PapelesFalsos', 'VelloFacial', 'Lentes', 'Embarazada'];
+    booleanFields.forEach((field) => {
+      const key = field as keyof PersonaData;
+      if (formData[key] === 'Sí') payload[key] = true;
+      else if (formData[key] === 'No') payload[key] = false;
+      else payload[key] = null;
+    });
 
     const res = await fetch(`http://localhost:3001/api/personas/${id}`, {
       method: 'PUT',
@@ -247,18 +256,15 @@ const EditarPersona: React.FC = () => {
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error || 'Error al actualizar');
+      const errorData = await res.json();
+      throw new Error(errorData.error || 'Error al actualizar');
     }
 
-    // Aquí asumimos que la API devuelve el objeto persona actualizado
-    const updatedPersona = await res.json();
-    
-    // Redirigir usando el idPersona de la respuesta
-    navigate(`/encuentro/${updatedPersona.idPersona || id}`);
-    
+    alert('Actualización exitosa');
+    navigate('/visualizar-movilidad'); // Redirect to movilidad list
   } catch (err: any) {
-    alert(err.message);
+    console.error('Error updating:', err);
+    alert(err.message || 'Error al actualizar los datos');
   } finally {
     setSaving(false);
   }

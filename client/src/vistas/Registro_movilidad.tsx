@@ -610,75 +610,79 @@ useEffect(() => {
   };
 
   // Enviar formulario
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setError(null);
 
-    // Validaciones
-    if (!formData.Nombre || !formData.PrimerApellido) {
-      setError('Por favor, complete nombre y primer apellido.');
-      setIsSubmitting(false);
-      return;
+const handleSubmit = async (e: FormEvent) => {
+  e.preventDefault();
+  setIsSubmitting(true);
+  setError(null);
+
+  // Validaciones básicas
+  if (!formData.Nombre || !formData.PrimerApellido) {
+    alert('Por favor, complete nombre y primer apellido.');
+    return;
+  }
+
+  // Verificar encuentro activo y usuario
+  if (!encuentroActivo || !user || !encuentroActivo.idPunto) {
+    setError('Debes iniciar un encuentro antes de registrar personas');
+    setIsSubmitting(false);
+    return;
+  }
+
+  try {
+    // 1. Registrar persona
+    const personaRes = await fetch('http://localhost:3001/api/personas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        ...formData, 
+        Situacion: 'En Movilidad',
+        idEntrevistador: user.id,
+        idGrupo: idGrupoActual
+      })
+    });
+
+    if (!personaRes.ok) {
+      const errorData = await personaRes.json();
+      throw new Error(errorData.error || 'Error al registrar persona');
     }
 
-    if (!encuentroActivo || !user) {
-      setError('No hay un encuentro activo o no estás autenticado');
-      setIsSubmitting(false);
-      return;
+    const nuevaPersona = await personaRes.json();
+
+    // 2. Registrar encuentro usando el punto geográfico del contexto
+    const encuentroRes = await fetch('http://localhost:3001/api/personas/encuentros', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        idPersona: nuevaPersona.idPersona,
+        idEntrevistador: user.id,
+        idPunto: encuentroActivo.idPunto, // Usar ID del punto del contexto
+        observaciones: `Registro inicial - ${encuentroActivo.observaciones}`,
+        fecha: new Date().toISOString()
+      })
+    });
+
+    if (!encuentroRes.ok) {
+      throw new Error('Error al registrar el encuentro asociado');
     }
 
-    try {
-      // 1. Registrar persona
-      const personaRes = await fetch('http://localhost:3001/api/personas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          ...formData, 
-          Situacion: 'En Movilidad',
-          idEntrevistador: user.id ,
-          idGrupo: idGrupoActual
-        })
-      });
-
-      
-
-      if (!personaRes.ok) {
-        const errorData = await personaRes.json();
-        throw new Error(errorData.error || 'Error al registrar persona');
-      }
-
-      const nuevaPersona = await personaRes.json();
-
-      // 2. Asociar al encuentro activo
-      const encuentroRes = await fetch('http://localhost:3001/api/personas/encuentros', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idPersona: nuevaPersona.idPersona,
-          idEntrevistador: user.id,
-          idPunto: encuentroActivo.idPunto,
-          observaciones: `Registro inicial - ${encuentroActivo.observaciones}`,
-          fecha: new Date().toISOString()
-        })
-      });
-
-      if (!encuentroRes.ok) {
-        throw new Error('Error al asociar el encuentro');
-      }
-
-      // Éxito - limpiar y redirigir
-      setFormData(initialFormData);
-      
-      
-    } catch (err) {
-      console.error('Error en el registro:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
-    } finally {
-      setIsSubmitting(false);
+    // Éxito - limpiar formulario
+    setFormData(initialFormData);
+    
+    // Manejo de modo grupo
+    if (modoGrupo) {
+      alert('Persona agregada al grupo exitosamente');
+    } else {
+      alert('Persona registrada con éxito');
     }
-  };
-
+    
+  } catch (err) {
+    console.error('Error en el registro:', err);
+    setError(err instanceof Error ? err.message : 'Error desconocido');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
    const renderFormGrupo = () => (
     <div className="grupo-form">
       <h3>Crear Nuevo Grupo</h3>
@@ -923,18 +927,32 @@ useEffect(() => {
           <div className="advanced-fields">
             {advancedFields.map(field => {
               // Manejar campos especiales
-              if (field === 'LocalidadDestino') {
-                return (
-                  <SelectField
-                    key={field}
-                    name={field}
-                    formData={formData}
-                    handleChange={handleChange}
-                    fetchOptions={fetchLocalidades}
-                    disabled={!['México', 'Estados Unidos'].includes(formData.PaisDestino)}
-                  />
-                );
-              }
+               if (field === 'LocalidadDestino') {
+                  // Si el país destino es Estados Unidos, mostrar campo de texto libre
+                  if (formData.PaisDestino === 'Estados Unidos') {
+                    return (
+                      <TextField
+                        key={field}
+                        name={field}
+                        formData={formData}
+                        handleChange={handleChange}
+                        type="text"
+                      />
+                    );
+                  } else {
+                    // Para otros países, mantener el SelectField
+                    return (
+                      <SelectField
+                        key={field}
+                        name={field}
+                        formData={formData}
+                        handleChange={handleChange}
+                        fetchOptions={fetchLocalidades}
+                        disabled={!['México', 'Estados Unidos'].includes(formData.PaisDestino)}
+                      />
+                    );
+                  }
+                }
               
               if (['FechaNacimiento', 'FechaUltimaDeportacion', 'FechaDetencion'].includes(field)) {
                 return (

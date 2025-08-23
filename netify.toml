@@ -1,6 +1,6 @@
 [build]
   command = "npm run build"  # Ejecuta desde raíz
-  publish = "dist"           # Directorio de salida de Vite
+  publish = "client/dist"           # Directorio de salida de Vite
   functions = "netlify/functions"
 
 [[redirects]]
@@ -11,4 +11,4 @@
 
 [context.production.environment]
   NODE_VERSION = "18"
-  VITE_API_URL = "https://tu-backend-real.com"  # Reemplaza con tu URL real
+  VITE_API_URL = "http://localhost:5173"  

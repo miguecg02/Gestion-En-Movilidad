@@ -20,9 +20,7 @@ export default defineConfig({
       }
     }
   },
-  server: {
-    open: true  // Abre navegador automáticamente
-  },
+  
   esbuild: {
     loader: 'tsx'
   },
