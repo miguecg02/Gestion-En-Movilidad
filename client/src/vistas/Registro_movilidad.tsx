@@ -4,6 +4,7 @@ import './FormularioEnMovilidad.css';
 import { useEffect } from 'react';
 import { useEncuentro } from './EncuentroContext';
 import { useAuth } from '../AuthContext';
+import { API_URL } from "../config";
 
 type FormData = {
   Nombre: string;
@@ -515,7 +516,7 @@ useEffect(() => {
   // Fetch funciones
   const fetchNacionalidades = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/personas/naciones/listado');
+      const response = await fetch(`${API_URL}/api/personas/naciones/listado`);
       const data = await response.json();
       return data.map((nacion: any) => ({
         value: nacion.idNacionalidad,
@@ -529,12 +530,12 @@ useEffect(() => {
 
   const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {
     if (formData.PaisDestino === 'México') {
-      const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=1');
+      const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=1`);
       const data: { nombre: string }[] = await res.json();
       return data.map(e => ({ value: e.nombre, label: e.nombre }));
     }
     if (formData.PaisDestino === 'Estados Unidos') {
-      const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=2');
+      const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=2`);
       const data: { nombre: string }[] = await res.json();
       return data.map(e => ({ value: e.nombre, label: e.nombre }));
     }
@@ -543,12 +544,12 @@ useEffect(() => {
 
   const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
     if (formData.PaisDestino === 'México') {
-      const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1');
+      const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=1`);
       const data: { nombre: string }[] = await res.json();
       return data.map(e => ({ value: e.nombre, label: e.nombre }));
     }
     if (formData.PaisDestino === 'Estados Unidos') {
-      const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=2');
+      const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=2`);
       const data: { nombre: string }[] = await res.json();
       return data.map(e => ({ value: e.nombre, label: e.nombre }));
     }
@@ -562,7 +563,7 @@ useEffect(() => {
     }
 
     try {
-      const res = await fetch('http://localhost:3001/api/personas/grupos', {
+      const res = await fetch(`${API_URL}/api/personas/grupos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(grupoActivo)
@@ -631,7 +632,7 @@ const handleSubmit = async (e: FormEvent) => {
 
   try {
     // 1. Registrar persona
-    const personaRes = await fetch('http://localhost:3001/api/personas', {
+    const personaRes = await fetch(`${API_URL}/api/personas`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -650,7 +651,7 @@ const handleSubmit = async (e: FormEvent) => {
     const nuevaPersona = await personaRes.json();
 
     // 2. Registrar encuentro usando el punto geográfico del contexto
-    const encuentroRes = await fetch('http://localhost:3001/api/personas/encuentros', {
+    const encuentroRes = await fetch(`${API_URL}/api/personas/encuentros`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

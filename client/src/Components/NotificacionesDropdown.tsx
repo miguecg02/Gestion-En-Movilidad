@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import axios from 'axios';
 import './NotificacionesDropdown.css';
+import { API_URL } from "../config";
+
 
 interface Notificacion {
   idNotificacion: number;
@@ -29,7 +31,7 @@ const NotificacionesDropdown = () => {
   
   try {
     // URL CORREGIDA (sin /personas extra)
-    const response = await axios.get('http://localhost:3001/api/notificaciones', {
+    const response = await axios.get(API_URL +'api/notificaciones', {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 8000
     });
@@ -85,7 +87,7 @@ const NotificacionesDropdown = () => {
   const marcarComoLeida = async (idNotificacion: number) => {
     try {
       await axios.patch(
-        `http://localhost:3001/api/notificaciones/${idNotificacion}/leida`,
+         API_URL +`/api/notificaciones/${idNotificacion}/leida`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

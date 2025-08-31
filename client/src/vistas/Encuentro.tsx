@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../AuthContext";
 import "./Encuentros.css";
+import { API_URL } from "../config";
+
+
 
 interface PuntoGeografico {
   latitud: string;
@@ -95,7 +98,7 @@ const Encuentro: React.FC = () => {
 
   try {
     // 1. Insertar el punto geográfico
-    const puntoResponse = await fetch("http://localhost:3001/api/personas/puntos", {
+    const puntoResponse = await fetch(`${API_URL}/api/personas/puntos`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -119,7 +122,7 @@ const Encuentro: React.FC = () => {
 
     // 2. Insertar el encuentro con el idPunto obtenido
     const encuentroResponse = await fetch(
-      "http://localhost:3001/api/personas/encuentros",
+     `${API_URL}/api/personas/encuentros`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

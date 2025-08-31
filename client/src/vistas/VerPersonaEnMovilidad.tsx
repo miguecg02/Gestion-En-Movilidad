@@ -109,7 +109,7 @@ const fieldLabels: Record<string, string> = {
   Situacion: 'Situación',
   Edad: 'Edad',
 };
-// URL base de la API (ajustar según el entorno)
+// URL base de la API 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
 // Definir interfaces para los tipos de datos

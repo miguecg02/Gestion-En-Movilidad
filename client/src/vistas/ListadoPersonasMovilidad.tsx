@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './ListadoPersonasMovilidad.css'; 
+import { API_URL } from "../config";
 
 interface PersonaEnMovilidad {
   idPersona: number;
@@ -56,7 +57,7 @@ const ListadoPersonasMovilidad = () => {
   useEffect(() => {
     const cargarNacionalidades = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/personas/naciones/listado');
+        const response = await axios.get(`${API_URL}/api/personas/naciones/listado`);
         setNacionalidades(response.data);
       } catch (err) {
         console.error('Error al cargar nacionalidades:', err);
@@ -82,7 +83,7 @@ const ListadoPersonasMovilidad = () => {
           params.idEntrevistador = user.id;
         }
 
-        const response = await axios.get('http://localhost:3001/api/personas', { params });
+        const response = await axios.get(`${API_URL}/api/personas`, { params });
         setPersonas(response.data);
         setError('');
       } catch (err) {

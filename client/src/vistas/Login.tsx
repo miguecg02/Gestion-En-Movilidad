@@ -13,17 +13,17 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e: FormEvent) => {
+     console.log("API_URL desde env:", import.meta.env.VITE_API_URL);
     e.preventDefault();
-    console.log(' handleSubmit FIRED', { email, password });
+    
     setError(null);
 
     try {
-      console.log(' calling login()');
       await login(email, password);
-      console.log(' login() resolved');
+      
       navigate('/');
     } catch (err) {
-      console.log(' login() rejected', err);
+      
       setError('Correo o contraseña incorrectos');
     }
   };

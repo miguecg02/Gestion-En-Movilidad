@@ -5,7 +5,7 @@ import './FormularioDesaparecida.css';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
-
+import { API_URL } from "../config";
 
 // Tipos e interfaces
 type FormData = {
@@ -605,7 +605,7 @@ const FormularioDesaparecida: React.FC = () => {
 
   const fetchNacionalidades = async () => {
   try {
-    const response = await fetch('http://localhost:3001/api/personas/naciones/listado');
+    const response = await fetch(`${API_URL}/api/personas/naciones/listado`);
     const data = await response.json();
     return data.map((nacion: any) => ({
       value: nacion.idNacionalidad,
@@ -620,12 +620,12 @@ const FormularioDesaparecida: React.FC = () => {
 const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   if (formData.PaisDestino === 'México') {
     // llama a tu API de entidades
-    const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=1');
+    const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=1`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
   if (formData.PaisDestino === 'Estados Unidos') {
-    const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=2');
+    const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=2`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
@@ -649,12 +649,12 @@ const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[
 
  const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   if (formData.PaisDestino === 'México') {
-    const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1');
+    const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=1`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
   if (formData.PaisDestino === 'Estados Unidos') {
-    const res = await fetch('http://localhost:3001/api/personas/municipios/listado?idNacionalidad=2');
+    const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=2`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
@@ -663,7 +663,7 @@ const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[
 
 const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   if (formData.PaisPerdidaContacto === 'México' && formData.EstadoPerdidaContacto) {
-    const res = await fetch(`http://localhost:3001/api/personas/municipios/listado?idNacionalidad=1&entidad=${encodeURIComponent(formData.EstadoPerdidaContacto)}`);
+    const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=1&entidad=${encodeURIComponent(formData.EstadoPerdidaContacto)}`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
@@ -691,12 +691,12 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
   const fetchEstadosPerdidaContacto = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   if (formData.PaisPerdidaContacto === 'México') {
     // llama a tu API de entidades
-    const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=1');
+    const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=1`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
   if (formData.PaisPerdidaContacto === 'Estados Unidos') {
-    const res = await fetch('http://localhost:3001/api/personas/entidades/listado?idNacionalidad=2');
+    const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=2`);
     const data: { nombre: string }[] = await res.json();
     return data.map(e => ({ value: e.nombre, label: e.nombre }));
   }
@@ -736,7 +736,7 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
 
   try {
     // Primero verifica si ya existe
-    const resCheck = await fetch(`http://localhost:3001/api/personas?Nombre=${encodeURIComponent(formData.Nombre)}&PrimerApellido=${encodeURIComponent(formData.PrimerApellido)}`, {
+    const resCheck = await fetch(`${API_URL}/api/personas?Nombre=${encodeURIComponent(formData.Nombre)}&PrimerApellido=${encodeURIComponent(formData.PrimerApellido)}`, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
@@ -766,7 +766,7 @@ const fetchLocalidadesPerdidaContacto = useCallback(async (): Promise<{value:str
 
     // Crear nueva persona
     const dataToSend = { ...formData, Situacion: 'Desaparecida' };
-    const res = await fetch('http://localhost:3001/api/personas', {
+    const res = await fetch(`${API_URL}/api/personas`, {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',

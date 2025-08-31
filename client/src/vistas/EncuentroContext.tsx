@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL } from "../config";
+
 
 interface PuntoGeografico {
   latitud: number;
@@ -80,7 +82,7 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
     const ubicacion = await obtenerUbicacion();
     
     // 2. Registrar el punto geográfico en el backend
-    const puntoResponse = await axios.post('http://localhost:3001/api/personas/puntos', {
+    const puntoResponse = await axios.post(`${API_URL}/api/personas/puntos`, {
       latitud: ubicacion.latitud,
       longitud: ubicacion.longitud,
       descripcion: ubicacion.descripcion,

@@ -1,6 +1,7 @@
 // AuthContext.tsx
 import { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { API_URL } from "./config";
 import axios from "axios";
 interface UserData {
   id: number;
@@ -8,6 +9,9 @@ interface UserData {
   email: string;
   rol: string;
 }
+
+
+
 
 interface AuthContextType {
   token: string | null;
@@ -52,7 +56,7 @@ const login = async (email: string, password: string) => {
       ? (import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001')
       : 'https://gestion-en-movilidad-backend.vercel.app';
 
-    const response = await axios.post(`${baseUrl}/api/login`, { email, password });
+    const response = await axios.post(`${API_URL}/api/login`, { email, password });
     
     const { token: authToken, userId, nombre, rol } = response.data;
     

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './EditarPersona.css';
+import { API_URL } from "../config";
 
 
 interface PersonaData {
@@ -209,7 +210,7 @@ const EditarPersona: React.FC = () => {
   
   (async () => {
     try {
-      const res = await fetch(`http://localhost:3001/api/personas/${id}`);
+      const res = await fetch(API_URL +`/api/personas/${id}`);
       console.log('HTTP status:', res.status);
       
       if (!res.ok) {
@@ -295,7 +296,7 @@ const EditarPersona: React.FC = () => {
   });
 
     try {
-      const res = await fetch(`http://localhost:3001/api/personas/${id}`, {
+      const res = await fetch(API_URL +`/api/personas/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

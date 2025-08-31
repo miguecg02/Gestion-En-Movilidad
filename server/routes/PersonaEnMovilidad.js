@@ -2,6 +2,8 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_development';
 
 const NOTIFICACION_TIPOS = {
   NUEVO_REGISTRO: 'nuevo_registro',
@@ -10,6 +12,28 @@ const NOTIFICACION_TIPOS = {
   SISTEMA: 'sistema',
   NUEVA_DESAPARECIDA: 'nueva_desaparecida',
   CAMBIO_DESAPARECIDA: 'cambio_desaparecida'
+};
+
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Token de acceso requerido' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+    if (err) {
+      if (err.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expirado' });
+      }
+      return res.status(403).json({ error: 'Token inválido' });
+    }
+    
+    req.userId = decoded.userId;
+    req.userRole = decoded.rol;
+    next();
+  });
 };
 
 // Agregar esta función al inicio del archivo
@@ -32,11 +56,10 @@ const crearNotificacionParaCoordinadores = async (titulo, mensaje, tipo = 'siste
   }
 };
 
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = process.env.JWT_SECRET;
+
 
 // CREATE
-router.post('/', async (req, res) => {
+router.post('/',verifyToken, async (req, res) => {
   try {
     const d = req.body;
     
@@ -256,7 +279,7 @@ router.post('/', async (req, res) => {
 });
 
 
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req, res) => {
  try {
     const { 
       Nombre = '', 
@@ -311,7 +334,7 @@ router.get('/', async (req, res) => {
 
 
 // Cambiar el endpoint de encuentros-por-nombre
-router.get('/encuentros-por-nombre', async (req, res) => {
+router.get('/encuentros-por-nombre', verifyToken, async (req, res) => {
   try {
     const { nombre, apellido } = req.query;
     
@@ -352,7 +375,7 @@ router.get('/encuentros-por-nombre', async (req, res) => {
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', verifyToken, async (req, res) => {
   try {
     const [personaRows] = await db.query(
       'SELECT * FROM PersonaEnMovilidad WHERE idPersona = ?', 
@@ -405,7 +428,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // UPDATE
-router.put('/:id', async (req, res) => {
+router.put('/:id', verifyToken ,async (req, res) => {
    const d = req.body;
   console.log('Situacion recibida:', req.body.Situacion);
   let values = [];
@@ -662,7 +685,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Obtener un grupo específico por ID
-router.get('/grupo/:idGrupo', async (req, res) => {
+router.get('/grupo/:idGrupo', verifyToken, async (req, res) => {
   try {
     const { idGrupo } = req.params;
     
@@ -700,7 +723,7 @@ router.get('/grupo/:idGrupo', async (req, res) => {
 });
 
 //NATIONALITIES ENDPOINT
-router.get('/naciones/listado', async (req, res) => {
+router.get('/naciones/listado', verifyToken, async (req, res) => {
   try {
     // Renombramos idNacionalidad a id para tu frontend
     const [rows] = await db.query(
@@ -716,7 +739,7 @@ router.get('/naciones/listado', async (req, res) => {
 
 
 // GET /api/personas/entidades/listado?idNacionalidad=1
-router.get('/entidades/listado', async (req, res) => {
+router.get('/entidades/listado', verifyToken, async (req, res) => {
   try {
     const { idNacionalidad } = req.query;
     const params = [];
@@ -742,7 +765,7 @@ router.get('/entidades/listado', async (req, res) => {
 });
 
 // routes/PersonaEnMovilidad.js
-router.get('/municipios/listado', async (req, res) => {
+router.get('/municipios/listado',verifyToken, async (req, res) => {
   try {
     const { idNacionalidad, entidad } = req.query;
     const params = [];
@@ -784,7 +807,7 @@ router.get('/municipios/listado', async (req, res) => {
 });
 
 
-router.post('/encuentros', async (req, res) => {
+router.post('/encuentros', verifyToken ,async (req, res) => {
   try {
      const { idPersona, idEntrevistador, idPunto, observaciones, fecha } = req.body;
 
@@ -830,7 +853,7 @@ router.post('/encuentros', async (req, res) => {
   }
 });
 
-router.get('/:id/encuentros', async (req, res) => {
+router.get('/:id/encuentros', verifyToken ,async (req, res) => {
   try {
     const { id } = req.params;
     // Cambiar esta consulta
@@ -854,7 +877,7 @@ router.get('/:id/encuentros', async (req, res) => {
 });
 
 
-router.post('/puntos', async (req, res) => {
+router.post('/puntos', verifyToken ,async (req, res) => {
   try {
     const { latitud, longitud, descripcion } = req.body;
 
@@ -890,7 +913,7 @@ router.post('/puntos', async (req, res) => {
   }
 });
 
-router.post('/grupos', async (req, res) => { // ← Nueva ruta para grupos
+router.post('/grupos', verifyToken ,async (req, res) => { // ← Nueva ruta para grupos
   try {
     const { NombreGrupo, NombreEncargado, LugarCreacion } = req.body;
 
@@ -914,7 +937,7 @@ router.post('/grupos', async (req, res) => { // ← Nueva ruta para grupos
 });
 
 
-router.get('/', async (req, res) => {
+router.get('/', verifyToken ,async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM grupos ORDER BY FechaCreacion DESC');
     res.json(rows);
@@ -927,7 +950,7 @@ router.get('/', async (req, res) => {
 
 
 
-router.get('/entrevistadores/:id', async (req, res) => {
+router.get('/entrevistadores/:id', verifyToken,  async (req, res) => {
   try {
     const idEntrevistador = parseInt(req.params.id);
     if (isNaN(idEntrevistador)) {
@@ -966,7 +989,7 @@ router.get('/entrevistadores/:id', async (req, res) => {
 
 
 // Agregar nuevo endpoint para obtener grupos de personas
-router.get('/grupos', async (req, res) => {
+router.get('/grupos', verifyToken, async (req, res) => {
   try {
     const { nombre = '', apellido = '', situacion = '' } = req.query;
     
@@ -1007,7 +1030,7 @@ router.get('/grupos', async (req, res) => {
 });
 
 // Modificar el endpoint de encuentros para aceptar múltiples IDs
-router.get('/encuentros/multi', async (req, res) => {
+router.get('/encuentros/multi', verifyToken ,async (req, res) => {
   try {
     const ids = req.query.ids.split(',').map(id => parseInt(id));
     
@@ -1030,7 +1053,7 @@ router.get('/encuentros/multi', async (req, res) => {
   }
 });
 
-router.put('/entrevistadores/:id', async (req, res) => {
+router.put('/entrevistadores/:id', verifyToken ,async (req, res) => {
   try {
     const idEntrevistador = parseInt(req.params.id);
     if (isNaN(idEntrevistador)) {

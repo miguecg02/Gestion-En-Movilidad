@@ -4,6 +4,7 @@ const personasRouter = require('./routes/PersonaEnMovilidad');
 const loginRoutes = require('./routes/Login');
 const bodyParser = require('body-parser');
 const notificacionesRouter = require('./routes/Notificaciones');
+require('dotenv').config(); 
 const app = express();
 const PORT = process.env.PORT || 3001;
 

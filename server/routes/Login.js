@@ -4,41 +4,58 @@ const db = require('../db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
-// Configuración (deberías usar variables de entorno en producción)
-const JWT_SECRET = 'tu_secreto_secreto_jwt'; // Usa process.env.JWT_SECRET en producción
-const JWT_EXPIRES_IN = '1h'; // El token expira en 1 hora
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_development';
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '1h';
 
 router.post("/", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Validación básica
     if (!email || !password) {
       return res.status(400).json({ error: "Email y contraseña son requeridos" });
     }
 
     const [rows] = await db.query(
-      "SELECT idEntrevistador, password, nombre, rol FROM Entrevistadores WHERE email = ?", // Añadir rol
+      "SELECT idEntrevistador, password, nombre, rol FROM Entrevistadores WHERE email = ?",
       [email]
     );
 
     const user = rows[0];
 
     if (!user) {
-      // No revelar si el usuario existe o no por seguridad
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    // Comparación segura de contraseñas con bcrypt
-    const passwordMatch = password === user.password;
+    // Verificar si la contraseña está hasheada o en texto plano
+    let passwordMatch;
+    
+    if (user.password.startsWith('$2b$')) {
+      // Contraseña hasheada - usar bcrypt.compare
+      passwordMatch = await bcrypt.compare(password, user.password);
+    } else {
+      // Contraseña en texto plano - comparación directa (transición)
+      passwordMatch = password === user.password;
+      
+      // Si coincide y está en texto plano, hashearla para futuros logins
+      if (passwordMatch) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await db.query(
+          'UPDATE Entrevistadores SET password = ? WHERE idEntrevistador = ?',
+          [hashedPassword, user.idEntrevistador]
+        );
+      }
+    }
 
     if (!passwordMatch) {
       return res.status(401).json({ error: "Credenciales inválidas" });
     }
 
-    // Generar token JWT con expiración
     const token = jwt.sign(
-      { userId: user.idEntrevistador },
+      { 
+        userId: user.idEntrevistador,
+        email: email,
+        rol: user.rol
+      },
       JWT_SECRET,
       { expiresIn: JWT_EXPIRES_IN }
     );
@@ -47,7 +64,7 @@ router.post("/", async (req, res) => {
       token: token,
       userId: user.idEntrevistador,
       nombre: user.nombre,
-      rol: user.rol, // Asegurar que se envíe el rol
+      rol: user.rol,
       expiresIn: JWT_EXPIRES_IN
     });
 

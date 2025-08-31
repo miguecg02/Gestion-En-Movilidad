@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './VerPersonaEnMovilidad.css';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // Configurar ícono personalizado para Leaflet
 const customIcon = new L.Icon({
@@ -146,7 +147,7 @@ const VerPersonaDesaparecida = () => {
         setError('');
         
         // Obtener datos de la persona
-        const response = await fetch(`http://localhost:3001/api/personas/${id}`);
+        const response = await fetch(`${API_URL}/api/personas/${id}`);
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -161,7 +162,7 @@ const VerPersonaDesaparecida = () => {
         // Obtener información del grupo si existe
         if (personaData.idGrupo) {
           const grupoResponse = await fetch(
-            `http://localhost:3001/api/personas/grupo/${personaData.idGrupo}`
+           `${API_URL}/api/personas/grupo/${personaData.idGrupo}`
           );
           
           if (grupoResponse.ok) {
@@ -172,7 +173,7 @@ const VerPersonaDesaparecida = () => {
         
         // Obtener encuentros por nombre y apellido
         const encuentrosResponse = await fetch(
-          `http://localhost:3001/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}`
+          `${API_URL}/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}`
         );
         
         if (encuentrosResponse.ok) {

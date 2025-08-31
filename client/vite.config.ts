@@ -23,8 +23,5 @@ export default defineConfig({
   
   esbuild: {
     loader: 'tsx'
-  },
-  define: {
-    'process.env': process.env
   }
 })
