@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useAuth } from '@/AuthContext';
 
 const API_BASE_URL = 'http://localhost:3001/api';
 
@@ -23,7 +24,7 @@ const TodosEncuentrosMapa = () => {
   const [encuentros, setEncuentros] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
+  const { token } = useAuth();
   useEffect(() => {
   const fetchEncuentros = async () => {
     try {
@@ -34,8 +35,13 @@ const TodosEncuentrosMapa = () => {
       }
 
       const response = await fetch(
-        `${API_BASE_URL}/personas/encuentros-por-nombre?nombre=${encodeURIComponent(nombre)}&apellido=${encodeURIComponent(apellido)}`
-      );
+  `${API_BASE_URL}/personas/encuentros-por-nombre?nombre=${encodeURIComponent(nombre)}&apellido=${encodeURIComponent(apellido)}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    );
       
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);

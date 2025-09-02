@@ -61,8 +61,11 @@ const crearNotificacionParaCoordinadores = async (titulo, mensaje, tipo = 'siste
 // CREATE
 router.post('/',verifyToken, async (req, res) => {
   try {
+  
     const d = req.body;
-    
+      console.log('Received data:', d);
+      console.log('idEntrevistador from request:', d.idEntrevistador);
+      console.log('User ID from token:', req.userId);
     // Validación mínima
     if (!d.Nombre || !d.PrimerApellido) {
       return res.status(400).json({ error: 'Nombre y primer apellido son obligatorios' });
@@ -278,9 +281,8 @@ router.post('/',verifyToken, async (req, res) => {
   }
 });
 
-
 router.get('/', verifyToken, async (req, res) => {
- try {
+  try {
     const { 
       Nombre = '', 
       PrimerApellido = '', 
@@ -292,14 +294,20 @@ router.get('/', verifyToken, async (req, res) => {
 
     let sql = `
       SELECT * FROM PersonaEnMovilidad
-      WHERE Nombre LIKE ?
-        AND PrimerApellido LIKE ?
+      WHERE 1=1
     `;
     
-    const params = [
-      `%${Nombre}%`, 
-      `%${PrimerApellido}%`
-    ];
+    const params = [];
+
+    if (Nombre) {
+      sql += ' AND Nombre LIKE ?';
+      params.push(`%${Nombre}%`);
+    }
+
+    if (PrimerApellido) {
+      sql += ' AND PrimerApellido LIKE ?';
+      params.push(`%${PrimerApellido}%`);
+    }
 
     if (Situacion) {
       sql += ' AND Situacion = ?';
@@ -316,29 +324,30 @@ router.get('/', verifyToken, async (req, res) => {
       params.push(PaisDestino);
     }
 
-    if (idEntrevistador) {
+    // For Registradores, always filter by their ID
+    if (req.userRole === 'Registrador') {
+      sql += ' AND idEntrevistador = ?';
+      params.push(req.userId);
+    } 
+    // For Coordinadores, use the idEntrevistador parameter if provided
+    else if (idEntrevistador) {
       sql += ' AND idEntrevistador = ?';
       params.push(idEntrevistador);
-    } else {
-      // Si no hay idEntrevistador, mostrar todas las situaciones
-      sql += ' AND (Situacion = "En Movilidad" OR Situacion = "Desaparecida")';
     }
 
     const [rows] = await db.query(sql, params);
     res.status(200).json(rows);
-  }  catch (error) {
+  } catch (error) {
     console.error('Error al obtener datos:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-
-// Cambiar el endpoint de encuentros-por-nombre
 router.get('/encuentros-por-nombre', verifyToken, async (req, res) => {
   try {
     const { nombre, apellido } = req.query;
     
-    // Primero obtener todos los IDs de personas con ese nombre y apellido
+    // Obtener todos los IDs de personas con ese nombre y apellido, sin importar la situación
     const [personas] = await db.query(
       "SELECT idPersona FROM PersonaEnMovilidad WHERE Nombre = ? AND PrimerApellido = ?",
       [nombre, apellido]
@@ -351,7 +360,38 @@ router.get('/encuentros-por-nombre', verifyToken, async (req, res) => {
     const ids = personas.map(p => p.idPersona);
     const placeholders = ids.map(() => '?').join(',');
     
-    // Luego obtener todos los encuentros para esos IDs
+    // Obtener todos los encuentros para esos IDs
+   const [rows] = await db.query(`
+      SELECT 
+        e.*, 
+        p.latitud, 
+        p.longitud,
+        p.descripcion AS lugar,
+        per.Nombre,
+        per.PrimerApellido,
+        per.SegundoApellido,
+        per.Situacion
+      FROM Encuentros e
+      JOIN PuntoGeografico p ON e.IdPunto = p.idPunto
+      JOIN PersonaEnMovilidad per ON e.IdPersona = per.idPersona
+      WHERE per.Nombre = ? AND per.PrimerApellido = ?
+      ORDER BY e.Fecha DESC
+    `, [nombre, apellido]);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error al obtener encuentros por nombre:', error);
+    res.status(500).json({ error: 'Error al obtener encuentros' });
+  }
+});
+
+
+
+// routes/personas.js - Modificar el endpoint existente
+router.get('/encuentros-por-nombre-completo', verifyToken, async (req, res) => {
+  try {
+    const { nombre, apellido } = req.query;
+    
+    // Búsqueda por similitud en lugar de exactitud
     const [rows] = await db.query(`
       SELECT 
         e.*, 
@@ -360,17 +400,19 @@ router.get('/encuentros-por-nombre', verifyToken, async (req, res) => {
         p.descripcion AS lugar,
         per.Nombre,
         per.PrimerApellido,
-        per.SegundoApellido
+        per.SegundoApellido,
+        per.Situacion
       FROM Encuentros e
       JOIN PuntoGeografico p ON e.IdPunto = p.idPunto
       JOIN PersonaEnMovilidad per ON e.IdPersona = per.idPersona
-      WHERE e.IdPersona IN (${placeholders})
+      WHERE per.Nombre LIKE CONCAT('%', ?, '%') 
+        AND per.PrimerApellido LIKE CONCAT('%', ?, '%')
       ORDER BY e.Fecha DESC
-    `, ids);
+    `, [nombre, apellido]);
     
     res.status(200).json(rows);
   } catch (error) {
-    console.error('Error al obtener encuentros por nombre:', error);
+    console.error('Error al obtener encuentros por nombre completo:', error);
     res.status(500).json({ error: 'Error al obtener encuentros' });
   }
 });

@@ -406,3 +406,13 @@ h3 {
 }
 
 
+.encuentro-movilidad {
+  color: #007bff;
+  font-weight: bold;
+}
+
+.encuentro-desaparecida {
+  color: #dc3545;
+  font-weight: bold;
+}
+

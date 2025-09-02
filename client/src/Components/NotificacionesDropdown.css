@@ -103,7 +103,7 @@
 .notificacion-mensaje {
   font-size: 0.85rem;
   margin-bottom: 5px;
-  color: #333;
+  color: #672cc0;
 }
 
 .notificacion-fecha {
@@ -190,4 +190,94 @@
   font-size: 0.8rem;
   display: block;
   margin-top: 5px;
+}
+
+/* Add these new styles to your existing CSS */
+
+/* Style for reported missing person notifications */
+.notificacion-desaparecida-reportada {
+  background-color: #fff2f0;
+  border-left: 4px solid #ff4d4f;
+  border-radius: 4px;
+}
+
+.notificacion-desaparecida-reportada .notificacion-titulo {
+  color: #ff4d4f;
+  font-weight: bold;
+}
+
+.notificacion-desaparecida-reportada .badge-nueva {
+  background-color: #ff4d4f;
+}
+
+/* Style for new missing person registration notifications */
+.notificacion-nueva-desaparecida {
+  background-color: #f0f7ff;
+  border-left: 4px solid #1890ff;
+  border-radius: 4px;
+}
+
+.notificacion-nueva-desaparecida .notificacion-titulo {
+  color: #ff1818;
+  font-weight: bold;
+}
+
+.notificacion-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.notificacion-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Enhanced badge style */
+.badge-nueva {
+  background: #1890ff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  text-transform: uppercase;
+}
+
+
+/* Estilo mejorado para notificaciones de desaparición */
+.notificacion-desaparecida-reportada {
+  background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+  border-left: 4px solid #ff4d4f;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(255, 77, 79, 0.15);
+}
+
+.notificacion-desaparecida-reportada .notificacion-titulo {
+  color: #ff4d4f;
+  font-weight: bold;
+  font-size: 1rem;
+}
+
+.notificacion-desaparecida-reportada .notificacion-mensaje {
+  color: #d9363e;
+  font-weight: 500;
+}
+
+.notificacion-desaparecida-reportada .badge-nueva {
+  background: #ff4d4f;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* Efecto de hover para notificaciones de desaparición */
+.notificacion-desaparecida-reportada:hover {
+  background: linear-gradient(135deg, #ffe6e6 0%, #ffd6d6 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 77, 79, 0.2);
 }

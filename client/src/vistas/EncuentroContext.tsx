@@ -77,17 +77,21 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
 };
 
   const iniciarEncuentro = async (observaciones: string) => {
-  try {
+  
+    try {
     // 1. Obtener ubicación actual
     const ubicacion = await obtenerUbicacion();
-    
+    const token = sessionStorage.getItem('token');
     // 2. Registrar el punto geográfico en el backend
     const puntoResponse = await axios.post(`${API_URL}/api/personas/puntos`, {
       latitud: ubicacion.latitud,
       longitud: ubicacion.longitud,
       descripcion: ubicacion.descripcion,
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
-
     const idPunto = puntoResponse.data.idPunto;
 
     // 3. Crear el encuentro activo en el estado

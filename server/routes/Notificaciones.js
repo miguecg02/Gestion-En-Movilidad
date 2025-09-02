@@ -34,28 +34,9 @@ router.use(verifyToken);
 
 router.get('/', async (req, res) => {
   try {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (!token) {
-      return res.status(401).json({ error: 'No autorizado' });
-    }
-
-    // Verificar token
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.userId;
-
-    // Obtener rol de usuario
-    const [userRows] = await db.query(
-      'SELECT rol FROM Entrevistadores WHERE idEntrevistador = ?',
-      [userId]
-    );
-
-    if (userRows.length === 0) {
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    const userRole = userRows[0].rol;
+    // Usar la información del usuario ya verificada por el middleware
+    const userId = req.userId;
+    const userRole = req.userRole;
 
     // Solo coordinadores pueden ver notificaciones
     if (userRole !== 'Coordinador') {
@@ -64,36 +45,31 @@ router.get('/', async (req, res) => {
 
     // Obtener notificaciones
     const [notificaciones] = await db.query(
-      `SELECT
-        idNotificacion,
-        titulo,
-        mensaje,
-        leida,
-        DATE_FORMAT(fecha_creacion, '%Y-%m-%d %H:%i:%s') as fecha_creacion
-      FROM Notificaciones
-      WHERE idEntrevistador = ?
-      ORDER BY fecha_creacion DESC
-      LIMIT 50`,
-      [userId]
-    );
+  `SELECT
+    idNotificacion,
+    titulo,
+    mensaje,
+    leida,
+    tipo,
+    DATE_FORMAT(fecha_creacion, '%Y-%m-%d %H:%i:%s') as fecha_creacion
+  FROM Notificaciones
+  WHERE idEntrevistador = ?
+  ORDER BY fecha_creacion DESC
+  LIMIT 50`,
+  [userId]
+);
 
     res.json(notificaciones);
   } catch (error) {
     console.error('Error en endpoint /notificaciones:', error);
-
-    if (error.name === 'JsonWebTokenError') {
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ error: 'Token expirado' });
-    }
-
     res.status(500).json({
       error: 'Error al obtener notificaciones',
       details: error.message
     });
   }
 });
+
+
 // Endpoint para marcar notificación como leída
 router.patch('/:id/leida', async (req, res) => {
   try {

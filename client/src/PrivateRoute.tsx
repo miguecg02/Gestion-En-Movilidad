@@ -7,22 +7,28 @@ const PrivateRoute = () => {
   const location = useLocation();
   const lastPathRef = useRef<string | null>(null);
 
-useEffect(() => {
-  const currentPath = location.pathname + location.search;
-  
-  if (isAuthenticated && user?.rol === "Coordinador" && currentPath !== lastPathRef.current) {
-    lastPathRef.current = currentPath;
-    const event = new Event('reloadNotifications');
-    window.dispatchEvent(event);
+  useEffect(() => {
+    const currentPath = location.pathname + location.search;
     
-    // Agregar recarga periódica cada 2 minutos
-    const interval = setInterval(() => {
-      window.dispatchEvent(new Event('reloadNotifications'));
-    }, 120000);
-    
-    return () => clearInterval(interval);
-  }
-}, [isAuthenticated, user, location]);
+    if (isAuthenticated && user?.rol === "Coordinador" && currentPath !== lastPathRef.current) {
+      lastPathRef.current = currentPath;
+      
+      // Use a custom event with detail to ensure it's properly caught
+      const event = new CustomEvent('reloadNotifications', { 
+        detail: { timestamp: Date.now() } 
+      });
+      window.dispatchEvent(event);
+      
+      // Add periodic reload every 2 minutes
+      const interval = setInterval(() => {
+        window.dispatchEvent(new CustomEvent('reloadNotifications', { 
+          detail: { timestamp: Date.now() } 
+        }));
+      }, 120000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isAuthenticated, user, location]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

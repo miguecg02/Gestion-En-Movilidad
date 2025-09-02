@@ -146,7 +146,7 @@ const VerPersonaEnMovilidad = () => {
   const [error, setError] = useState('');
   const [mapReady, setMapReady] = useState(false);
   const [grupoInfo, setGrupoInfo] = useState<GrupoInfo | null>(null);
-  const { user } = useAuth(); // Obtener información del usuario
+  const { user , token} = useAuth(); // Obtener información del usuario
 
   useEffect(() => {
     const fetchData = async () => {
@@ -155,7 +155,11 @@ const VerPersonaEnMovilidad = () => {
         setError('');
         
         // 1. Obtener datos de la persona
-        const personaResponse = await fetch(`${API_BASE_URL}/personas/${id}`);
+        const personaResponse = await fetch(`${API_BASE_URL}/personas/${id}`, {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
         
         if (!personaResponse.ok) {
           if (personaResponse.status === 404) {
@@ -184,8 +188,14 @@ const VerPersonaEnMovilidad = () => {
         setPersona(personaData);
         
         // 2. Obtener encuentros asociados a la persona
-        const encuentrosResponse = await fetch(`${API_BASE_URL}/personas/${id}/encuentros`);
-        
+       const encuentrosResponse = await fetch(
+  `${API_BASE_URL}/personas/encuentros-por-nombre-completo?nombre=${personaData.Nombre}&apellido=${personaData.PrimerApellido}`, 
+  {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  }
+);
         if (!encuentrosResponse.ok) {
           if (encuentrosResponse.status === 404) {
             setEncuentros([]);
@@ -199,7 +209,11 @@ const VerPersonaEnMovilidad = () => {
         
         // 3. Obtener información del grupo si existe
         if (personaData.idGrupo) {
-          const grupoResponse = await fetch(`${API_BASE_URL}/personas/grupo/${personaData.idGrupo}`);
+          const grupoResponse = await fetch(`${API_BASE_URL}/personas/grupo/${personaData.idGrupo}`, {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
           
           if (grupoResponse.ok) {
             const grupoData = await grupoResponse.json();

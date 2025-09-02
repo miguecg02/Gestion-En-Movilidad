@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './VerPersonaEnMovilidad.css';
+import { useAuth } from '@/AuthContext';
 const API_URL = import.meta.env.VITE_API_URL;
 
 // Configurar ícono personalizado para Leaflet
@@ -18,6 +19,18 @@ const customIcon = new L.Icon({
   tooltipAnchor: [16, -28],
   shadowSize: [41, 41]
 });
+
+
+const redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 
 // Interfaces para tipos de datos
 interface GrupoInfo {
@@ -139,7 +152,7 @@ const VerPersonaDesaparecida = () => {
   const [coordenadas, setCoordenadas] = useState<[number, number] | null>(null);
   const [encuentros, setEncuentros] = useState<any[]>([]);
   const [grupoInfo, setGrupoInfo] = useState<GrupoInfo | null>(null);
-
+  const { token } = useAuth();
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -147,7 +160,11 @@ const VerPersonaDesaparecida = () => {
         setError('');
         
         // Obtener datos de la persona
-        const response = await fetch(`${API_URL}/api/personas/${id}`);
+        const response = await fetch(`${API_URL}/api/personas/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         
         if (!response.ok) {
           if (response.status === 404) {
@@ -162,7 +179,9 @@ const VerPersonaDesaparecida = () => {
         // Obtener información del grupo si existe
         if (personaData.idGrupo) {
           const grupoResponse = await fetch(
-           `${API_URL}/api/personas/grupo/${personaData.idGrupo}`
+           `${API_URL}/api/personas/grupo/${personaData.idGrupo}`,
+            { headers: {   'Authorization': `Bearer ${token}`
+    }         }
           );
           
           if (grupoResponse.ok) {
@@ -173,7 +192,9 @@ const VerPersonaDesaparecida = () => {
         
         // Obtener encuentros por nombre y apellido
         const encuentrosResponse = await fetch(
-          `${API_URL}/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}`
+          `${API_URL}/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}` ,
+          { headers: {   'Authorization': `Bearer ${token}`
+    }         }
         );
         
         if (encuentrosResponse.ok) {
@@ -414,7 +435,7 @@ const VerPersonaDesaparecida = () => {
               
               {/* Marcador de ubicación de pérdida de contacto */}
               {coordenadas && (
-                <Marker position={coordenadas} icon={customIcon}>
+                <Marker position={coordenadas} icon={redIcon}> {/* Cambiado a redIcon */}
                   <Popup>
                     <div className="popup-content">
                       <strong>Ubicación de pérdida de contacto</strong>

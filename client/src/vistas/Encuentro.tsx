@@ -23,7 +23,7 @@ const Encuentro: React.FC = () => {
   const { idPersona } = useParams<{ idPersona: string }>();
   const navigate = useNavigate();
   const { user } = useAuth(); // Asumiendo que tu AuthContext proporciona el usuario autenticado
-
+  const { token } = useAuth();
   const [encuentro, setEncuentro] = useState<EncuentroData>({
     idPersona: idPersona ? parseInt(idPersona) : 0,
     idEntrevistador: user?.id ? Number(user.id) : 1, // Usar el ID del usuario autenticado
@@ -100,7 +100,10 @@ const Encuentro: React.FC = () => {
     // 1. Insertar el punto geográfico
     const puntoResponse = await fetch(`${API_URL}/api/personas/puntos`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
       body: JSON.stringify({
         latitud: lat,  // Usamos el valor validado
         longitud: alt,   // Usamos el valor validado
@@ -125,7 +128,10 @@ const Encuentro: React.FC = () => {
      `${API_URL}/api/personas/encuentros`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  },
         body: JSON.stringify({
           idPersona: encuentro.idPersona,
           idEntrevistador: encuentro.idEntrevistador,

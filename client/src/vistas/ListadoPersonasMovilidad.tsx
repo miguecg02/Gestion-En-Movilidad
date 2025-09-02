@@ -44,6 +44,7 @@ const ListadoPersonasMovilidad = () => {
   const [nacionalidades, setNacionalidades] = useState<Nacionalidad[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { token } = useAuth();
   const [filtros, setFiltros] = useState({
     nombre: '',
     apellido: '',
@@ -57,7 +58,11 @@ const ListadoPersonasMovilidad = () => {
   useEffect(() => {
     const cargarNacionalidades = async () => {
       try {
-        const response = await axios.get(`${API_URL}/api/personas/naciones/listado`);
+        const response = await axios.get(`${API_URL}/api/personas/naciones/listado`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         setNacionalidades(response.data);
       } catch (err) {
         console.error('Error al cargar nacionalidades:', err);
@@ -68,34 +73,39 @@ const ListadoPersonasMovilidad = () => {
   }, []);
 
   useEffect(() => {
-    const cargarPersonas = async () => {
-      try {
-        setLoading(true);
-        const params: any = {
-          Nombre: debouncedFiltros.nombre,
-          PrimerApellido: debouncedFiltros.apellido,
-          Situacion: 'En Movilidad',
-          Nacionalidad: debouncedFiltros.nacionalidad,
-          PaisDestino: debouncedFiltros.paisDestino
-        };
-
-        if (user?.rol === 'Registrador') {
-          params.idEntrevistador = user.id;
-        }
-
-        const response = await axios.get(`${API_URL}/api/personas`, { params });
-        setPersonas(response.data);
-        setError('');
-      } catch (err) {
-        setError('Error al cargar las personas');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
+  const cargarPersonas = async () => {
+  try {
+    setLoading(true);
+    const params: any = {
+      Nombre: debouncedFiltros.nombre,
+      PrimerApellido: debouncedFiltros.apellido,
+      Situacion: 'En Movilidad',
+      Nacionalidad: debouncedFiltros.nacionalidad,
+      PaisDestino: debouncedFiltros.paisDestino
     };
 
-    cargarPersonas();
-  }, [debouncedFiltros, user]);
+    // Add idEntrevistador for registradores
+    if (user?.rol === 'Registrador') {
+      params.idEntrevistador = user.id;
+    }
+
+    const response = await axios.get(`${API_URL}/api/personas`, { 
+      params,  
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    setPersonas(response.data);
+    setError('');
+  } catch (err) {
+    setError('Error al cargar las personas');
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+  cargarPersonas();
+}, [debouncedFiltros, user]);
 
   const handleFiltroChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

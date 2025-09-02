@@ -4,13 +4,13 @@ import axios from 'axios';
 import './NotificacionesDropdown.css';
 import { API_URL } from "../config";
 
-
 interface Notificacion {
   idNotificacion: number;
   titulo: string;
   mensaje: string;
   leida: boolean;
   fecha_creacion: string;
+  tipo?: string;
 }
 
 const NotificacionesDropdown = () => {
@@ -22,44 +22,44 @@ const NotificacionesDropdown = () => {
   const isMounted = useRef(true);
 
   const cargarNotificaciones = useCallback(async () => {
-  if (!isMounted.current || !token || !user || user.rol !== 'Coordinador') {
-    return;
-  }
-
-  setLoading(true);
-  setError(null);
-  
-  try {
-    // URL CORREGIDA (sin /personas extra)
-    const response = await axios.get(API_URL +'api/notificaciones', {
-      headers: { Authorization: `Bearer ${token}` },
-      timeout: 8000
-    });
-
-    if (isMounted.current && response.data) {
-      setNotificaciones(response.data);
+    if (!isMounted.current || !token || !user || user.rol !== 'Coordinador') {
+      return;
     }
-  } catch (err) {
-    // Manejo de errores mejorado
-    if (isMounted.current) {
-      let errorMsg = 'Error al cargar notificaciones';
-      
-      if (axios.isAxiosError(err)) {
-        if (err.response?.status === 403) {
-          errorMsg = 'No tienes permiso para ver notificaciones';
-        } else {
-          errorMsg = err.response?.data?.error || err.message;
-        }
+
+    setLoading(true);
+    setError(null);
+    
+    try {
+     
+      const response = await axios.get(`${API_URL}/api/notificaciones`, {
+        headers: { Authorization: `Bearer ${token}` },
+        timeout: 8000
+      });
+
+      if (isMounted.current && response.data) {
+        setNotificaciones(response.data);
       }
-      
-      setError(errorMsg);
+    } catch (err) {
+      // Manejo de errores mejorado
+      if (isMounted.current) {
+        let errorMsg = 'Error al cargar notificaciones';
+        
+        if (axios.isAxiosError(err)) {
+          if (err.response?.status === 403) {
+            errorMsg = 'No tienes permiso para ver notificaciones';
+          } else {
+            errorMsg = err.response?.data?.error || err.message;
+          }
+        }
+        
+        setError(errorMsg);
+      }
+    } finally {
+      if (isMounted.current) {
+        setLoading(false);
+      }
     }
-  } finally {
-    if (isMounted.current) {
-      setLoading(false);
-    }
-  }
-}, [token, user]);
+  }, [token, user]);
 
   useEffect(() => {
     isMounted.current = true;
@@ -73,34 +73,86 @@ const NotificacionesDropdown = () => {
     };
   }, [cargarNotificaciones]);
 
+  // Improved event listener for reloadNotifications
   useEffect(() => {
-    const handler = () => {
+    const handleReloadNotifications = () => {
       if (isMounted.current) {
         cargarNotificaciones();
       }
     };
 
-    window.addEventListener('reloadNotifications', handler);
-    return () => window.removeEventListener('reloadNotifications', handler);
+    // Listen for the custom event
+    window.addEventListener('reloadNotifications', handleReloadNotifications);
+
+    // Cleanup function to remove the event listener
+    return () => {
+      window.removeEventListener('reloadNotifications', handleReloadNotifications);
+    };
   }, [cargarNotificaciones]);
+
+
+  const getNotificationClass = (notificacion: Notificacion) => {
+    const baseClass = 'notificacion-item';
+    const unreadClass = !notificacion.leida ? 'no-leida' : '';
+
+     if (notificacion.tipo === 'cambio_desaparecida' || 
+      notificacion.titulo.toLowerCase().includes('reportada como desaparecida') || 
+      notificacion.mensaje.toLowerCase().includes('reportada como desaparecida')) {
+    return `${baseClass} ${unreadClass} notificacion-desaparecida-reportada`;
+  }
+  
+    
+    // Check for missing person reports
+    if (notificacion.titulo.includes('reportada como desaparecida') || 
+        notificacion.mensaje.includes('reportada como desaparecida')) {
+      return `${baseClass} ${unreadClass} notificacion-desaparecida-reportada`;
+    }
+    
+    // Check for new missing person registrations
+    if (notificacion.titulo.includes('Nuevo registro') && 
+        notificacion.mensaje.includes('desaparecida')) {
+      return `${baseClass} ${unreadClass} notificacion-nueva-desaparecida`;
+    }
+
+    if (notificacion.titulo.includes('Nuevo registro') && 
+      notificacion.mensaje.includes('desaparecida')) {
+    return `${baseClass} ${unreadClass} notificacion-nueva-desaparecida`;
+  }
+  
+    
+    return `${baseClass} ${unreadClass}`;
+  };
 
   const marcarComoLeida = async (idNotificacion: number) => {
     try {
       await axios.patch(
-         API_URL +`/api/notificaciones/${idNotificacion}/leida`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      `${API_URL}/api/notificaciones/${idNotificacion}/leida`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
       setNotificaciones(prev => prev.map(n => 
         n.idNotificacion === idNotificacion ? { ...n, leida: true } : n
       ));
     } catch (err) {
-      console.error('Error al marcar como leída:', err);
+       if (isMounted.current) {
+    let errorMsg = 'Error al cargar notificaciones';
+    
+    if (axios.isAxiosError(err)) {
+      console.error('Error details:', err.response?.data);
+      if (err.response?.status === 403) {
+        errorMsg = 'No tienes permiso para ver notificaciones';
+      } else {
+        errorMsg = err.response?.data?.error || err.message;
+      }
+    }
+    
+    setError(errorMsg);
+  }
     }
   };
 
   const notificacionesNoLeidas = notificaciones.filter(n => !n.leida).length;
-  const esCoordinador = user?.rol=== 'Coordinador';
+  const esCoordinador = user?.rol === 'Coordinador';
 
   return (
     <div className="dropdown-notificaciones">
@@ -139,7 +191,7 @@ const NotificacionesDropdown = () => {
               {notificaciones.map(notificacion => (
                 <div 
                   key={notificacion.idNotificacion} 
-                  className={`notificacion-item ${!notificacion.leida ? 'no-leida' : ''}`}
+                  className={getNotificationClass(notificacion)}
                   onClick={() => marcarComoLeida(notificacion.idNotificacion)}
                 >
                   <div className="notificacion-cabecera">

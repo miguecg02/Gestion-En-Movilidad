@@ -222,8 +222,6 @@ const initialFormData: FormData = {
   RedesSociales: ''
 };
 
-
-
 // Componentes reutilizables (TextField, RadioGroup, etc.)
 interface TextFieldProps {
   name: keyof FormData;
@@ -430,13 +428,13 @@ const DateField: React.FC<DateFieldProps> = ({ name, formData, setFormData, disa
   );
 };
 
-
 type GrupoData = {
   NombreGrupo: string;
   FechaCreacion: Date;
   NombreEncargado: string;
   LugarCreacion: string;
 };
+
 // Componente principal
 const FormularioEnMovilidad: React.FC = () => {
   const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -445,7 +443,8 @@ const FormularioEnMovilidad: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { encuentroActivo } = useEncuentro();
   const { user } = useAuth();
-   const [mostrarFormGrupo, setMostrarFormGrupo] = useState(false);
+  const { token } = useAuth();
+  const [mostrarFormGrupo, setMostrarFormGrupo] = useState(false);
   const [grupoActivo, setGrupoActivo] = useState<GrupoData | null>(null);
   const [idGrupoActual, setIdGrupoActual] = useState<number | null>(null);
   const [modoGrupo, setModoGrupo] = useState(false);
@@ -463,98 +462,125 @@ const FormularioEnMovilidad: React.FC = () => {
   }, [encuentroActivo]);
 
   // Iniciar la cámara
-const startCamera = async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err) {
+      console.error("Error al acceder a la cámara", err);
+      setError("No se pudo acceder a la cámara. Asegúrese de permitir el acceso.");
     }
-  } catch (err) {
-    console.error("Error al acceder a la cámara", err);
-    setError("No se pudo acceder a la cámara. Asegúrese de permitir el acceso.");
-  }
-};
-
-// Detener la cámara
-const stopCamera = () => {
-  if (streamRef.current) {
-    streamRef.current.getTracks().forEach(track => track.stop());
-    streamRef.current = null;
-  }
-};
-
-// Capturar imagen
-const captureImage = () => {
-  if (videoRef.current) {
-    const video = videoRef.current;
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const imageData = canvas.toDataURL('image/png');
-      setFormData(prev => ({ ...prev, Imagen: imageData }));
-      setShowCamera(false);
-    }
-  }
-};
-
-useEffect(() => {
-  if (showCamera) {
-    startCamera();
-  } else {
-    stopCamera();
-  }
-  
-  return () => {
-    stopCamera();
   };
-}, [showCamera]);
+
+  // Detener la cámara
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  // Capturar imagen
+  const captureImage = () => {
+    if (videoRef.current) {
+      const video = videoRef.current;
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/png');
+        setFormData(prev => ({ ...prev, Imagen: imageData }));
+        setShowCamera(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (showCamera) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    
+    return () => {
+      stopCamera();
+    };
+  }, [showCamera]);
 
   // Fetch funciones
-  const fetchNacionalidades = async () => {
+ const fetchNacionalidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL}/api/personas/naciones/listado`);
+      const response = await fetch(`${API_URL}/api/personas/naciones/listado`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
       const data = await response.json();
-      return data.map((nacion: any) => ({
-        value: nacion.idNacionalidad,
-        label: nacion.nacionalidad
-      }));
+      return Array.isArray(data) ? data.map(item => ({ value: item.nacionalidad, label: item.nacionalidad })) : [];
     } catch (error) {
       console.error('Error al cargar nacionalidades:', error);
       return [];
     }
-  };
+  }, [token]);
 
-  const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {
-    if (formData.PaisDestino === 'México') {
-      const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=1`);
-      const data: { nombre: string }[] = await res.json();
-      return data.map(e => ({ value: e.nombre, label: e.nombre }));
-    }
-    if (formData.PaisDestino === 'Estados Unidos') {
-      const res = await fetch(`${API_URL}/api/personas/entidades/listado?idNacionalidad=2`);
-      const data: { nombre: string }[] = await res.json();
-      return data.map(e => ({ value: e.nombre, label: e.nombre }));
-    }
-    return [];
-  }, [formData.PaisDestino]);
 
-  const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
+const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {
+  try {
+    let url = '';
     if (formData.PaisDestino === 'México') {
-      const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=1`);
-      const data: { nombre: string }[] = await res.json();
-      return data.map(e => ({ value: e.nombre, label: e.nombre }));
+      url = `${API_URL}/api/personas/entidades/listado?idNacionalidad=1`;
+    } else if (formData.PaisDestino === 'Estados Unidos') {
+      url = `${API_URL}/api/personas/entidades/listado?idNacionalidad=2`;
+    } else {
+      return [];
     }
-    if (formData.PaisDestino === 'Estados Unidos') {
-      const res = await fetch(`${API_URL}/api/personas/municipios/listado?idNacionalidad=2`);
-      const data: { nombre: string }[] = await res.json();
-      return data.map(e => ({ value: e.nombre, label: e.nombre }));
-    }
+    
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    // Transform the data to match { value: string; label: string; }
+    return Array.isArray(data) ? data.map(item => ({ value: item.nombre, label: item.nombre })) : [];
+  } catch (error) {
+    console.error('Error al cargar estados:', error);
     return [];
-  }, [formData.PaisDestino]);
+  }
+}, [formData.PaisDestino, token]);
+
+const fetchLocalidades = useCallback(async (): Promise<{value:string;label:string;}[]> => {
+  try {
+    let url = '';
+    if (formData.PaisDestino === 'México') {
+      url = `${API_URL}/api/personas/municipios/listado?idNacionalidad=1`;
+    } else if (formData.PaisDestino === 'Estados Unidos') {
+      url = `${API_URL}/api/personas/municipios/listado?idNacionalidad=2`;
+    } else {
+      return [];
+    }
+    
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await res.json();
+    // Transform the data to match { value: string; label: string; }
+    return Array.isArray(data) ? data.map(item => ({ value: item.nombre, label: item.nombre })) : [];
+  } catch (error) {
+    console.error('Error al cargar localidades:', error);
+    return [];
+  }
+}, [formData.PaisDestino, token]);
 
   const crearGrupo = async () => {
     if (!grupoActivo || !grupoActivo.NombreGrupo) {
@@ -565,7 +591,7 @@ useEffect(() => {
     try {
       const res = await fetch(`${API_URL}/api/personas/grupos`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(grupoActivo)
       });
 
@@ -611,80 +637,80 @@ useEffect(() => {
   };
 
   // Enviar formulario
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
 
-const handleSubmit = async (e: FormEvent) => {
-  e.preventDefault();
-  setIsSubmitting(true);
-  setError(null);
-
-  // Validaciones básicas
-  if (!formData.Nombre || !formData.PrimerApellido) {
-    alert('Por favor, complete nombre y primer apellido.');
-    return;
-  }
-
-  // Verificar encuentro activo y usuario
-  if (!encuentroActivo || !user || !encuentroActivo.idPunto) {
-    setError('Debes iniciar un encuentro antes de registrar personas');
-    setIsSubmitting(false);
-    return;
-  }
-
-  try {
-    // 1. Registrar persona
-    const personaRes = await fetch(`${API_URL}/api/personas`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        ...formData, 
-        Situacion: 'En Movilidad',
-        idEntrevistador: user.id,
-        idGrupo: idGrupoActual
-      })
-    });
-
-    if (!personaRes.ok) {
-      const errorData = await personaRes.json();
-      throw new Error(errorData.error || 'Error al registrar persona');
+    // Validaciones básicas
+    if (!formData.Nombre || !formData.PrimerApellido) {
+      alert('Por favor, complete nombre y primer apellido.');
+      return;
     }
 
-    const nuevaPersona = await personaRes.json();
-
-    // 2. Registrar encuentro usando el punto geográfico del contexto
-    const encuentroRes = await fetch(`${API_URL}/api/personas/encuentros`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        idPersona: nuevaPersona.idPersona,
-        idEntrevistador: user.id,
-        idPunto: encuentroActivo.idPunto, // Usar ID del punto del contexto
-        observaciones: `Registro inicial - ${encuentroActivo.observaciones}`,
-        fecha: new Date().toISOString()
-      })
-    });
-
-    if (!encuentroRes.ok) {
-      throw new Error('Error al registrar el encuentro asociado');
+    // Verificar encuentro activo y usuario
+    if (!encuentroActivo || !user || !encuentroActivo.idPunto) {
+      setError('Debes iniciar un encuentro antes de registrar personas');
+      setIsSubmitting(false);
+      return;
     }
 
-    // Éxito - limpiar formulario
-    setFormData(initialFormData);
-    
-    // Manejo de modo grupo
-    if (modoGrupo) {
-      alert('Persona agregada al grupo exitosamente');
-    } else {
-      alert('Persona registrada con éxito');
+    try {
+      // 1. Registrar persona
+      const personaRes = await fetch(`${API_URL}/api/personas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ 
+          ...formData, 
+          Situacion: 'En Movilidad',
+          idEntrevistador: user.id,
+          idGrupo: idGrupoActual
+        })
+      });
+
+      if (!personaRes.ok) {
+        const errorData = await personaRes.json();
+        throw new Error(errorData.error || 'Error al registrar persona');
+      }
+
+      const nuevaPersona = await personaRes.json();
+
+      // 2. Registrar encuentro usando el punto geográfico del contexto
+      const encuentroRes = await fetch(`${API_URL}/api/personas/encuentros`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' , 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          idPersona: nuevaPersona.idPersona,
+          idEntrevistador: user.id,
+          idPunto: encuentroActivo.idPunto,
+          observaciones: `Registro inicial - ${encuentroActivo.observaciones}`,
+          fecha: new Date().toISOString()
+        })
+      });
+
+      if (!encuentroRes.ok) {
+        throw new Error('Error al registrar el encuentro asociado');
+      }
+
+      // Éxito - limpiar formulario
+      setFormData(initialFormData);
+      
+      // Manejo de modo grupo
+      if (modoGrupo) {
+        alert('Persona agregada al grupo exitosamente');
+      } else {
+        alert('Persona registrada con éxito');
+      }
+      
+    } catch (err) {
+      console.error('Error en el registro:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-  } catch (err) {
-    console.error('Error en el registro:', err);
-    setError(err instanceof Error ? err.message : 'Error desconocido');
-  } finally {
-    setIsSubmitting(false);
-  }
-};
-   const renderFormGrupo = () => (
+  };
+
+  const renderFormGrupo = () => (
     <div className="grupo-form">
       <h3>Crear Nuevo Grupo</h3>
       
@@ -754,11 +780,11 @@ const handleSubmit = async (e: FormEvent) => {
     </div>
   );
 
-
   // Campos básicos
   const basicFields: (keyof FormData)[] = [
-    'Nombre', 'PrimerApellido', 'SegundoApellido', 'Nacionalidad', 
-    'Imagen', 'PaisDestino', 'EstadoDestino'
+    'Nombre', 'PrimerApellido','LocalidadOrigen','SegundoApellido', 'Nacionalidad', 
+    'Imagen', 'PaisDestino', 'EstadoDestino', 'LocalidadDestino',
+    'PuntoEntradaMex', 'PuntoEntradaUSA'
   ];
 
   // Campos avanzados
@@ -856,7 +882,70 @@ const handleSubmit = async (e: FormEvent) => {
               );
             }
 
-              if (field === 'Imagen') {
+            if (field === 'LocalidadDestino') {
+              // Si el país destino es México, mostrar dropdown
+              if (formData.PaisDestino === 'México') {
+                return (
+                  <SelectField
+                    key={field}
+                    name={field}
+                    formData={formData}
+                    handleChange={handleChange}
+                    fetchOptions={fetchLocalidades}
+                    disabled={!formData.PaisDestino}
+                  />
+                );
+              } else {
+                // Para otros países, mostrar campo de texto
+                return (
+                  <TextField
+                    key={field}
+                    name={field}
+                    formData={formData}
+                    handleChange={handleChange}
+                    type="text"
+                  />
+                );
+              }
+            }
+
+            if (field === 'PuntoEntradaMex') {
+              return (
+                <SelectField
+                  key={field}
+                  name={field}
+                  formData={formData}
+                  handleChange={handleChange}
+                  options={[
+                    { value: 'Tapachula', label: 'Tapachula' },
+                    { value: 'Ciudad Hidalgo', label: 'Ciudad Hidalgo' },
+                    { value: 'No sabe', label: 'No sabe' },
+                    { value: 'Otro', label: 'Otro' }
+                  ]}
+                  disabled={formData.PaisDestino === 'Estados Unidos'}
+                />
+              );
+            }
+
+            if (field === 'PuntoEntradaUSA') {
+              return (
+                <SelectField
+                  key={field}
+                  name={field}
+                  formData={formData}
+                  handleChange={handleChange}
+                  options={[
+                    { value: 'Nogales', label: 'Nogales' },
+                    { value: 'El Paso', label: 'El Paso' },
+                    { value: 'No sabe', label: 'No sabe' },
+                    { value: 'Otro', label: 'Otro' }
+                  ]}
+                  disabled={formData.PaisDestino !== 'Estados Unidos'}
+                />
+              );
+            }
+
+            if (field === 'Imagen') {
               return (
                 <div className="form-field" key={field}>
                   <label htmlFor={field}>{etiquetas[field]}</label>
@@ -928,33 +1017,6 @@ const handleSubmit = async (e: FormEvent) => {
           <div className="advanced-fields">
             {advancedFields.map(field => {
               // Manejar campos especiales
-               if (field === 'LocalidadDestino') {
-                  // Si el país destino es Estados Unidos, mostrar campo de texto libre
-                  if (formData.PaisDestino === 'Estados Unidos') {
-                    return (
-                      <TextField
-                        key={field}
-                        name={field}
-                        formData={formData}
-                        handleChange={handleChange}
-                        type="text"
-                      />
-                    );
-                  } else {
-                    // Para otros países, mantener el SelectField
-                    return (
-                      <SelectField
-                        key={field}
-                        name={field}
-                        formData={formData}
-                        handleChange={handleChange}
-                        fetchOptions={fetchLocalidades}
-                        disabled={!['México', 'Estados Unidos'].includes(formData.PaisDestino)}
-                      />
-                    );
-                  }
-                }
-              
               if (['FechaNacimiento', 'FechaUltimaDeportacion', 'FechaDetencion'].includes(field)) {
                 return (
                   <DateField 
