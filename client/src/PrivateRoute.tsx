@@ -13,13 +13,11 @@ const PrivateRoute = () => {
     if (isAuthenticated && user?.rol === "Coordinador" && currentPath !== lastPathRef.current) {
       lastPathRef.current = currentPath;
       
-      // Use a custom event with detail to ensure it's properly caught
       const event = new CustomEvent('reloadNotifications', { 
         detail: { timestamp: Date.now() } 
       });
       window.dispatchEvent(event);
       
-      // Add periodic reload every 2 minutes
       const interval = setInterval(() => {
         window.dispatchEvent(new CustomEvent('reloadNotifications', { 
           detail: { timestamp: Date.now() } 

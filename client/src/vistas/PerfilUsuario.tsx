@@ -38,6 +38,8 @@ const PerfilUsuario = () => {
   const [formData, setFormData] = useState<Partial<Entrevistador>>({});
   const [location, setLocation] = useState<Location | null>(null);
   const [locationError, setLocationError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     const fetchEntrevistador = async () => {
@@ -77,7 +79,7 @@ const PerfilUsuario = () => {
   }, [user]);
 
   useEffect(() => {
-    // Get current location
+   
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -103,20 +105,35 @@ const PerfilUsuario = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'password') {
+      setPassword(value);
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const updateData = {
+        ...formData,
+        ...(password && { password }) 
+      };
+      
       await axios.put(
-       `${API_URL}/api/personas/entrevistadores/${user?.id}`, formData, {
+        `${API_URL}/api/personas/entrevistadores/${user?.id}`, 
+        updateData, 
+        {
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem('token')}`
           }
-        });
+        }
+      );
+      
       setEntrevistador(formData as Entrevistador);
       setEditMode(false);
+      setPassword(''); 
       alert('Perfil actualizado correctamente');
     } catch (err) {
       setError('Error al actualizar los datos');
@@ -146,17 +163,26 @@ const PerfilUsuario = () => {
         <p className="no-data">No se encontraron datos del usuario</p>
       ) : editMode ? (
         <form onSubmit={handleSubmit} className="edit-form">
+          {/* Campos que NO se pueden editar (solo lectura) */}
           <div className="form-group">
             <label>Nombre:</label>
             <input
               type="text"
-              name="nombre"
-              value={formData.nombre || ''}
-              onChange={handleInputChange}
-              required
+              value={entrevistador.nombre || ''}
+              disabled
             />
           </div>
           
+          <div className="form-group">
+            <label>Organización:</label>
+            <input
+              type="text"
+              value={entrevistador.organizacion || ''}
+              disabled
+            />
+          </div>
+          
+          {/* Campos que SÍ se pueden editar */}
           <div className="form-group">
             <label>Email:</label>
             <input
@@ -165,8 +191,27 @@ const PerfilUsuario = () => {
               value={formData.email || ''}
               onChange={handleInputChange}
               required
-              disabled // El email no debería ser editable normalmente
             />
+          </div>
+          
+          <div className="form-group">
+            <label>Contraseña:</label>
+            <div className="password-input-container">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={password}
+                onChange={handleInputChange}
+                placeholder="Dejar vacío para mantenerla"
+              />
+              <button 
+                type="button" 
+                className="toggle-password"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? "Ocultar" : "Mostrar"}
+              </button>
+            </div>
           </div>
           
           <div className="form-group">
@@ -175,16 +220,6 @@ const PerfilUsuario = () => {
               type="tel"
               name="telefono"
               value={formData.telefono || ''}
-              onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label>Organización:</label>
-            <input
-              type="text"
-              name="organizacion"
-              value={formData.organizacion || ''}
               onChange={handleInputChange}
             />
           </div>

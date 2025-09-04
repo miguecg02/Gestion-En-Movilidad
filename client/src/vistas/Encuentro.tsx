@@ -22,7 +22,7 @@ interface EncuentroData {
 const Encuentro: React.FC = () => {
   const { idPersona } = useParams<{ idPersona: string }>();
   const navigate = useNavigate();
-  const { user } = useAuth(); // Asumiendo que tu AuthContext proporciona el usuario autenticado
+  const { user } = useAuth(); 
   const { token } = useAuth();
   const [encuentro, setEncuentro] = useState<EncuentroData>({
     idPersona: idPersona ? parseInt(idPersona) : 0,
@@ -35,7 +35,7 @@ const Encuentro: React.FC = () => {
     },
   });
 
-  // Obtener la ubicación automáticamente al cargar el componente
+  
   useEffect(() => {
     const obtenerUbicacion = () => {
       if (navigator.geolocation) {

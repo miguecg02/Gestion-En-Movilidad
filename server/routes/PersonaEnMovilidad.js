@@ -1,9 +1,10 @@
- // routes/personas.js
+
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_development';
+const bcrypt = require('bcrypt');
 
 const NOTIFICACION_TIPOS = {
   NUEVO_REGISTRO: 'nuevo_registro',
@@ -36,7 +37,6 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// Agregar esta función al inicio del archivo
 const crearNotificacionParaCoordinadores = async (titulo, mensaje, tipo = 'sistema') => {
   try {
     const [coordinadores] = await db.query(
@@ -66,7 +66,7 @@ router.post('/',verifyToken, async (req, res) => {
       console.log('Received data:', d);
       console.log('idEntrevistador from request:', d.idEntrevistador);
       console.log('User ID from token:', req.userId);
-    // Validación mínima
+   
     if (!d.Nombre || !d.PrimerApellido) {
       return res.status(400).json({ error: 'Nombre y primer apellido son obligatorios' });
     }
@@ -78,7 +78,7 @@ router.post('/',verifyToken, async (req, res) => {
       [d.Nombre, d.PrimerApellido]
     );
 
-    // Get user role from token
+    
     let userRole = 'Registrador';
     const authHeader = req.headers['authorization'];
     
@@ -102,7 +102,7 @@ router.post('/',verifyToken, async (req, res) => {
     if (duplicateCheck.length > 0) {
   const duplicado = duplicateCheck[0];
   
-  // En el bloque de verificación de duplicados, modificar la sección de 'En Movilidad'
+  
   if (duplicado.Situacion === 'En Movilidad') {
     if (userRole === 'Coordinador') {
       return res.status(409).json({ 
@@ -111,15 +111,14 @@ router.post('/',verifyToken, async (req, res) => {
         message: 'Persona encontrada en movilidad - redirigir a edición'
       });
     } else {
-      // CREAR NOTIFICACIÓN PARA COORDINADORES PERO PERMITIR EL REGISTRO
+    
       await crearNotificacionParaCoordinadores(
         'Registro de persona en movilidad como desaparecida',
         `Un registrador ha registrado a ${d.Nombre} ${d.PrimerApellido} que ya está registrado en movilidad.`,
         NOTIFICACION_TIPOS.SISTEMA
       );
 
-      // No retornamos error, continuamos con el registro
-      // break; // No break, simplemente continuamos
+      
     }
   } else if (duplicado.Situacion === 'Desaparecida') {
     return res.status(409).json({ 
@@ -129,7 +128,7 @@ router.post('/',verifyToken, async (req, res) => {
   }
 }
 
-    // If no duplicates or allowed to proceed, continue with insertion
+   
     const formatDate = (date) => {
       if (!date) return null;
       return new Date(date).toISOString().slice(0, 19).replace('T', ' ');
@@ -224,7 +223,7 @@ router.post('/',verifyToken, async (req, res) => {
       d.TipoDientes ?? null,
       d.EstadoSalud ?? null,
       d.DescripcionPrendas ?? null,
-      d.RedesSociales ?? null, // Asumiendo que idEntrevistador viene en el cuerpo
+      d.RedesSociales ?? null,  
       d.Situacion ?? '',
       d.idEntrevistador ?? null,
       d.idGrupo?? null
@@ -324,12 +323,11 @@ router.get('/', verifyToken, async (req, res) => {
       params.push(PaisDestino);
     }
 
-    // For Registradores, always filter by their ID
     if (req.userRole === 'Registrador') {
       sql += ' AND idEntrevistador = ?';
       params.push(req.userId);
     } 
-    // For Coordinadores, use the idEntrevistador parameter if provided
+ 
     else if (idEntrevistador) {
       sql += ' AND idEntrevistador = ?';
       params.push(idEntrevistador);
@@ -386,12 +384,12 @@ router.get('/encuentros-por-nombre', verifyToken, async (req, res) => {
 
 
 
-// routes/personas.js - Modificar el endpoint existente
+
 router.get('/encuentros-por-nombre-completo', verifyToken, async (req, res) => {
   try {
     const { nombre, apellido } = req.query;
     
-    // Búsqueda por similitud en lugar de exactitud
+   
     const [rows] = await db.query(`
       SELECT 
         e.*, 
@@ -468,6 +466,93 @@ router.get('/:id', verifyToken, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.put('/entrevistadores/:id', verifyToken, async (req, res) => {
+  try {
+    const idEntrevistador = parseInt(req.params.id);
+    if (isNaN(idEntrevistador)) {
+      return res.status(400).json({ error: 'ID no válido' });
+    }
+
+    const { email, password, telefono, fecha_nacimiento } = req.body;
+
+    // Si se proporciona una nueva contraseña, hashearla
+    let hashedPassword = null;
+    if (password) {
+    // Asegurar que el hasheo use el mismo método que en login
+    const saltRounds = 10;
+    hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Verificar que el hash generado comienza con $2b$
+    if (!hashedPassword.startsWith('$2b$')) {
+        console.error('Error: El hash no tiene el formato esperado');
+        return res.status(500).json({ error: 'Error en el hasheo de contraseña' });
+    }
+}
+
+    // Construir la consulta dinámicamente
+    let sql = `UPDATE Entrevistadores SET `;
+    const values = [];
+    const updates = [];
+
+    if (email !== undefined) {
+      updates.push('email = ?');
+      values.push(email);
+    }
+
+    if (hashedPassword !== null) {
+      updates.push('password = ?');
+      values.push(hashedPassword);
+    }
+
+    if (telefono !== undefined) {
+      updates.push('telefono = ?');
+      values.push(telefono);
+    }
+
+    if (fecha_nacimiento !== undefined) {
+      updates.push('fecha_nacimiento = ?');
+      values.push(fecha_nacimiento);
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    sql += updates.join(', ') + ' WHERE idEntrevistador = ?';
+    values.push(idEntrevistador);
+
+    const [result] = await db.query(sql, values);
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Entrevistador no encontrado' });
+    }
+
+    // Devolver datos actualizados
+    const [updatedRows] = await db.query(
+      `SELECT 
+        idEntrevistador, 
+        email, 
+        nombre, 
+        telefono, 
+        organizacion, 
+        DATE_FORMAT(fecha_nacimiento, '%Y-%m-%d') as fecha_nacimiento 
+       FROM Entrevistadores 
+       WHERE idEntrevistador = ?`,
+      [idEntrevistador]
+    );
+
+    res.json(updatedRows[0]);
+  } catch (error) {
+    console.error('Error al actualizar:', error);
+    res.status(500).json({ 
+      error: 'Error al actualizar el perfil',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+
 
 // UPDATE
 router.put('/:id', verifyToken ,async (req, res) => {
@@ -666,7 +751,7 @@ router.put('/:id', verifyToken ,async (req, res) => {
         idEntrevistador = ? 
       WHERE idPersona = ?`;
 
-     // Obtener datos actuales ANTES de la actualización
+     // Obtener datos actuales antes de la actualización
     const [currentRows] = await db.query(
       'SELECT Situacion, Nombre, PrimerApellido FROM PersonaEnMovilidad WHERE idPersona = ?', 
       [req.params.id]
@@ -715,7 +800,7 @@ router.put('/:id', verifyToken ,async (req, res) => {
     console.error('Error al actualizar persona:', {
       message: error.message,
       sql: error.sql,
-      values: values // values ya está definido en el scope exterior
+      values: values  
     });
     
     res.status(500).json({ 
@@ -764,10 +849,9 @@ router.get('/grupo/:idGrupo', verifyToken, async (req, res) => {
   }
 });
 
-//NATIONALITIES ENDPOINT
 router.get('/naciones/listado', verifyToken, async (req, res) => {
   try {
-    // Renombramos idNacionalidad a id para tu frontend
+    
     const [rows] = await db.query(
       'SELECT idNacionalidad AS id, nacionalidad FROM naciones ORDER BY nacionalidad'
     );
@@ -780,7 +864,7 @@ router.get('/naciones/listado', verifyToken, async (req, res) => {
 });
 
 
-// GET /api/personas/entidades/listado?idNacionalidad=1
+
 router.get('/entidades/listado', verifyToken, async (req, res) => {
   try {
     const { idNacionalidad } = req.query;
@@ -799,14 +883,14 @@ router.get('/entidades/listado', verifyToken, async (req, res) => {
     sql += ' ORDER BY entidad';
 
     const [rows] = await db.query(sql, params);
-    res.json(rows); // [{ nombre: "Aguascalientes" }, ...]
+    res.json(rows);  
   } catch (error) {
     console.error('Error al obtener estados:', error);
     res.status(500).json({ error: 'Error al obtener la lista de estados' });
   }
 });
 
-// routes/PersonaEnMovilidad.js
+
 router.get('/municipios/listado',verifyToken, async (req, res) => {
   try {
     const { idNacionalidad, entidad } = req.query;
@@ -898,7 +982,6 @@ router.post('/encuentros', verifyToken ,async (req, res) => {
 router.get('/:id/encuentros', verifyToken ,async (req, res) => {
   try {
     const { id } = req.params;
-    // Cambiar esta consulta
     const [rows] = await db.query(
       `SELECT 
         e.*, 
@@ -927,12 +1010,12 @@ router.post('/puntos', verifyToken ,async (req, res) => {
       return res.status(400).json({ error: 'Latitud es obligatoria' });
     }
 
-    // Validate coordinate format
+    
     if (isNaN(Number(latitud))) {
       return res.status(400).json({ error: 'Latitud debe ser un número válido' });
     }
 
-    // Validate description length if provided
+    
     if (descripcion && descripcion.length > 500) {
       return res.status(400).json({ error: 'Descripción demasiado larga (máx 500 caracteres)' });
     }
@@ -955,7 +1038,7 @@ router.post('/puntos', verifyToken ,async (req, res) => {
   }
 });
 
-router.post('/grupos', verifyToken ,async (req, res) => { // ← Nueva ruta para grupos
+router.post('/grupos', verifyToken ,async (req, res) => { 
   try {
     const { NombreGrupo, NombreEncargado, LugarCreacion } = req.body;
 
@@ -1030,7 +1113,7 @@ router.get('/entrevistadores/:id', verifyToken,  async (req, res) => {
 });
 
 
-// Agregar nuevo endpoint para obtener grupos de personas
+
 router.get('/grupos', verifyToken, async (req, res) => {
   try {
     const { nombre = '', apellido = '', situacion = '' } = req.query;
@@ -1095,60 +1178,6 @@ router.get('/encuentros/multi', verifyToken ,async (req, res) => {
   }
 });
 
-router.put('/entrevistadores/:id', verifyToken ,async (req, res) => {
-  try {
-    const idEntrevistador = parseInt(req.params.id);
-    if (isNaN(idEntrevistador)) {
-      return res.status(400).json({ error: 'ID no válido' });
-    }
-
-    
-    const { nombre, telefono, organizacion, fecha_nacimiento } = req.body;
-
-    const [result] = await db.query(
-      `UPDATE Entrevistadores 
-       SET 
-         nombre = ?,
-         telefono = ?,
-         organizacion = ?,
-         fecha_nacimiento = ?
-       WHERE idEntrevistador = ?`,
-      [
-        nombre || null,
-        telefono || null,
-        organizacion || null,
-        fecha_nacimiento || null,
-        idEntrevistador
-      ]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Entrevistador no encontrado' });
-    }
-
-    // Devuelve los datos actualizados
-    const [updatedRows] = await db.query(
-      `SELECT 
-        idEntrevistador, 
-        email, 
-        nombre, 
-        telefono, 
-        organizacion, 
-        DATE_FORMAT(fecha_nacimiento, '%Y-%m-%d') as fecha_nacimiento 
-       FROM Entrevistadores 
-       WHERE idEntrevistador = ?`,
-      [idEntrevistador]
-    );
-
-    res.json(updatedRows[0]);
-  } catch (error) {
-    console.error('Error al actualizar:', error);
-    res.status(500).json({ 
-      error: 'Error al actualizar el perfil',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
 
 
 

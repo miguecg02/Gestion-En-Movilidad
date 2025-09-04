@@ -84,7 +84,7 @@ const ListadoPersonasMovilidad = () => {
       PaisDestino: debouncedFiltros.paisDestino
     };
 
-    // Add idEntrevistador for registradores
+    
     if (user?.rol === 'Registrador') {
       params.idEntrevistador = user.id;
     }

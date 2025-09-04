@@ -79,14 +79,12 @@ const login = async (email: string, password: string) => {
   }
 };
 
-// En AuthContext.tsx
+
 const logout = () => {
   setToken(null);
   setUser(null);
-  // Limpiar sessionStorage
   sessionStorage.removeItem("token");
   sessionStorage.removeItem("user");
-  // Eliminar el header de axios
   delete axios.defaults.headers.common["Authorization"];
 };
 

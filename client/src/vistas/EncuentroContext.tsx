@@ -34,7 +34,7 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
     const handleBeforeUnload = () => {
       if (encuentroActivo) {
         sessionStorage.removeItem('encuentroActivo');
-        // Opcional: enviar solicitud al backend para marcar como finalizado
+        
       }
     };
 
@@ -56,7 +56,7 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
         },
         (error) => {
           console.error('Error obteniendo ubicación:', error);
-          // Si falla la geolocalización, usar valores por defecto en lugar de rechazar
+          
           resolve({
             latitud: 0,
             longitud: 0,
@@ -66,7 +66,7 @@ export const EncuentroProvider = ({ children }: { children: React.ReactNode }) =
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      // Si no hay soporte de geolocalización, usar valores por defecto
+     
       resolve({
         latitud: 0,
         longitud: 0,

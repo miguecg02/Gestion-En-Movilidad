@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
 
-// Solución más segura para el elemento root
+
 const container = document.getElementById('root') as HTMLElement;
 const root = createRoot(container);
 

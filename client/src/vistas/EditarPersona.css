@@ -75,3 +75,14 @@
   background-color: #999;
   cursor: not-allowed;
 }
+
+@media (max-width: 768px) {
+  .clase-container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .clase-form {
+    flex-direction: column;
+  }
+}

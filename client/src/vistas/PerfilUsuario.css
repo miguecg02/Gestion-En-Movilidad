@@ -126,3 +126,36 @@ button:hover {
   height: 300px;
   width: 100%;
 }
+
+@media (max-width: 768px) {
+  .clase-container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .clase-form {
+    flex-direction: column;
+  }
+}
+/* Agregar al archivo PerfilUsuario.css */
+.password-input-container {
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  flex: 1;
+  margin-right: 10px;
+}
+
+.toggle-password {
+  padding: 5px 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.toggle-password:hover {
+  background-color: #e0e0e0;
+}

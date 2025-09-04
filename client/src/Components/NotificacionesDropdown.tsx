@@ -40,7 +40,6 @@ const NotificacionesDropdown = () => {
         setNotificaciones(response.data);
       }
     } catch (err) {
-      // Manejo de errores mejorado
       if (isMounted.current) {
         let errorMsg = 'Error al cargar notificaciones';
         
@@ -73,7 +72,6 @@ const NotificacionesDropdown = () => {
     };
   }, [cargarNotificaciones]);
 
-  // Improved event listener for reloadNotifications
   useEffect(() => {
     const handleReloadNotifications = () => {
       if (isMounted.current) {
@@ -81,10 +79,9 @@ const NotificacionesDropdown = () => {
       }
     };
 
-    // Listen for the custom event
     window.addEventListener('reloadNotifications', handleReloadNotifications);
 
-    // Cleanup function to remove the event listener
+    
     return () => {
       window.removeEventListener('reloadNotifications', handleReloadNotifications);
     };
@@ -102,13 +99,11 @@ const NotificacionesDropdown = () => {
   }
   
     
-    // Check for missing person reports
     if (notificacion.titulo.includes('reportada como desaparecida') || 
         notificacion.mensaje.includes('reportada como desaparecida')) {
       return `${baseClass} ${unreadClass} notificacion-desaparecida-reportada`;
     }
     
-    // Check for new missing person registrations
     if (notificacion.titulo.includes('Nuevo registro') && 
         notificacion.mensaje.includes('desaparecida')) {
       return `${baseClass} ${unreadClass} notificacion-nueva-desaparecida`;

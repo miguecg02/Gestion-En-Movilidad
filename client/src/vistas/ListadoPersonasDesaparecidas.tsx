@@ -83,12 +83,12 @@ const ListadoPersonasDesaparecidas = () => {
     const params: any = {
       Nombre: debouncedFiltros.nombre,
       PrimerApellido: debouncedFiltros.apellido,
-      Situacion: 'Desaparecida', // or 'En Movilidad' for the other file
+      Situacion: 'Desaparecida', 
       Nacionalidad: debouncedFiltros.nacionalidad,
       PaisDestino: debouncedFiltros.paisDestino
     };
 
-    // Always send idEntrevistador for registradores
+    
     if (user?.rol === 'Registrador') {
       params.idEntrevistador = user.id;
     }

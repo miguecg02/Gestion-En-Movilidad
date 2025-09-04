@@ -105,3 +105,14 @@
   font-style: italic;
   color: #666;
 } 
+
+@media (max-width: 768px) {
+  .clase-container {
+    padding: 15px;
+    margin: 10px;
+  }
+
+  .clase-form {
+    flex-direction: column;
+  }
+}

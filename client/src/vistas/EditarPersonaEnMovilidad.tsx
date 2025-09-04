@@ -250,28 +250,28 @@ const EditarPersona: React.FC = () => {
 
       const data = await res.json();
       
-      // Normalize all fields including dates and numbers
+     
       const normalizedData: PersonaData = { ...initialData };
       
       Object.keys(initialData).forEach((key) => {
         const field = key as keyof PersonaData;
         if (data[field] !== undefined && data[field] !== null) {
-          // Handle date fields
+          
           if (/^Fecha/.test(key) && data[field]) {
             const dateValue = new Date(data[field] as string);
             normalizedData[field] = !isNaN(dateValue.getTime())
               ? dateValue.toISOString().split('T')[0]
               : (data[field] as string);
           } 
-          // Handle numeric fields
+         
           else if (['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'].includes(key)) {
             normalizedData[field] = data[field]?.toString() || '';
           }
-          // Handle boolean fields
+          
           else if (typeof data[field] === 'boolean') {
             normalizedData[field] = data[field] ? 'Sí' : 'No';
           }
-          // All other fields
+         
           else {
             normalizedData[field] = data[field] as string;
           }
@@ -303,23 +303,23 @@ const EditarPersona: React.FC = () => {
   setSaving(true);
 
   try {
-    // Prepare payload with proper data types
+    
     const payload: any = { ...formData, Situacion: 'En Movilidad' };
 
-    // Convert numeric fields
+  
     const numericKeys = ['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'];
     numericKeys.forEach((k) => {
       const key = k as keyof PersonaData;
       payload[key] = formData[key] === '' ? null : Number(formData[key]);
     });
 
-    // Convert date fields
+    
     const dateKeys = Object.keys(formData).filter(k => /^Fecha/.test(k)) as (keyof PersonaData)[];
     dateKeys.forEach(k => {
       payload[k] = formData[k] === '' ? null : new Date(formData[k] as string).toISOString();
     });
 
-    // Convert boolean fields
+   
     const booleanFields = ['ViajaConIdentificacion', 'HablaEspanol', 'OtrosIdiomas', 'DeportadaAnteriormente', 
                           'Encarcelado', 'PapelesFalsos', 'VelloFacial', 'Lentes', 'Embarazada'];
     booleanFields.forEach((field) => {
@@ -344,7 +344,7 @@ const EditarPersona: React.FC = () => {
     }
 
     alert('Actualización exitosa');
-    navigate('/visualizar-movilidad'); // Redirect to movilidad list
+    navigate('/visualizar-movilidad'); 
   } catch (err: any) {
     console.error('Error updating:', err);
     alert(err.message || 'Error al actualizar los datos');

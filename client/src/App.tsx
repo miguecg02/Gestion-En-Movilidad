@@ -19,7 +19,7 @@ import VerPersonaDesaparecida from './vistas/VerPersonaDesaparecida';
 import ListadoPersonasDesaparecidas from './vistas/ListadoPersonasDesaparecidas';
 import TodosEncuentrosMapa from './vistas/TodosEncuentrosMapa';
 import NotificacionesDropdown from './Components/NotificacionesDropdown';
-// Componente ButtonGroup (extraído del JSX original)
+
 
 function ButtonGroup() {
   const navigate = useNavigate();

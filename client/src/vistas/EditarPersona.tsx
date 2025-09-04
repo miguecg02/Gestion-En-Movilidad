@@ -288,7 +288,7 @@ const etiquetas: Record<keyof PersonaData, string> = {
 
 const EditarPersona: React.FC = () => {
   const { id: rawId } = useParams<{ id: string }>();
-  const id = rawId?.replace(/^:/, ""); // sanea rutas tipo ":1"
+  const id = rawId?.replace(/^:/, ""); 
   const navigate = useNavigate();
   const { user, token } = useAuth(); 
   const [formData, setFormData] = useState<PersonaData>(initialData);
@@ -316,10 +316,9 @@ const EditarPersona: React.FC = () => {
       const data: PersonaData = await res.json();
       console.log('Datos recibidos:', data);
 
-      // Normaliza los datos recibidos
       const normalizedData: PersonaData = { ...initialData };
       
-      // Copia solo los campos que existen en ambos objetos
+     
       Object.keys(initialData).forEach((key) => {
         const field = key as keyof PersonaData;
         if (data[field] !== undefined && data[field] !== null) {
@@ -336,7 +335,7 @@ const EditarPersona: React.FC = () => {
           else if (['EdadMigracion', 'NumeroMigraciones', 'Estatura', 'Peso', 'MesesEmbarazo'].includes(key)) {
             normalizedData[field] = data[field]?.toString() || '';
           }
-          // Resto de campos
+          
           else {
             normalizedData[field] = data[field] as string;
           }
@@ -367,7 +366,7 @@ const EditarPersona: React.FC = () => {
 
     setSaving(true);
 
-    // Prepara payload: convierte strings numéricas y vacíos → null
+    
     const numericKeys = [
       'EdadMigracion',
       'NumeroMigraciones',
@@ -382,7 +381,6 @@ const EditarPersona: React.FC = () => {
       payload[k] = payload[k] === '' ? null : Number(payload[k]);
     });
 
-    // 3. Fechas: "" → null
   const dateKeys = Object.keys(formData)
     .filter(k => /^Fecha/.test(k)) as (keyof PersonaData)[];
 

@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Configuración de límites ANTES de los middlewares principales
+// Configuración de límites antes de los middlewares principales
 app.use(express.json({ limit: '50mb' }));  // Configura primero el límite para JSON
 app.use(express.urlencoded({ limit: '50mb', extended: true }));  // Luego para URL-encoded
 app.use(bodyParser.json({ limit: '50mb' }));  // Y también para bodyParser (redundante pero seguro)
@@ -20,7 +20,7 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-// Rutas (después de todos los middlewares)
+// Rutas 
 app.use('/api/login', loginRoutes);
 app.use('/api/personas', personasRouter);
 app.use('/api/notificaciones', notificacionesRouter);

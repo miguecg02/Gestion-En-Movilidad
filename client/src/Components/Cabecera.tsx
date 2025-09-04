@@ -3,7 +3,7 @@ import { useAuth } from '../AuthContext';
 import './Cabecera.css';
 import logo from '../assets/images.jpeg';
 import { Link } from 'react-router-dom';
-import NotificacionesDropdown from './NotificacionesDropdown'; // Importar el componente
+import NotificacionesDropdown from './NotificacionesDropdown'; 
 
 const Cabecera = () => {
   const { user } = useAuth();
