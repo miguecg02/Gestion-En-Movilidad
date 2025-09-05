@@ -142,6 +142,8 @@ const fieldLabels: Record<string, string> = {
   Edad: 'Edad',
 };
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
+
 const VerPersonaDesaparecida = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -191,11 +193,14 @@ const VerPersonaDesaparecida = () => {
         }
         
         // Obtener encuentros por nombre y apellido
-        const encuentrosResponse = await fetch(
-          `${API_URL}/api/personas/encuentros-por-nombre?nombre=${encodeURIComponent(personaData.Nombre)}&apellido=${encodeURIComponent(personaData.PrimerApellido)}` ,
-          { headers: {   'Authorization': `Bearer ${token}`
-    }         }
-        );
+       const encuentrosResponse = await fetch(
+  `${API_BASE_URL}/personas/encuentros-por-nombre-completo?nombre=${personaData.Nombre}&apellido=${personaData.PrimerApellido}`, 
+  {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  }
+);
         
         if (encuentrosResponse.ok) {
           const encuentrosData = await encuentrosResponse.json();

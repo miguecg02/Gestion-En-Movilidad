@@ -851,16 +851,14 @@ router.get('/grupo/:idGrupo', verifyToken, async (req, res) => {
 
 router.get('/naciones/listado', verifyToken, async (req, res) => {
   try {
-    
     const [rows] = await db.query(
-      'SELECT idNacionalidad AS id, nacionalidad FROM naciones ORDER BY nacionalidad'
+      'SELECT DISTINCT nacionalidad FROM naciones ORDER BY nacionalidad' // Agrega DISTINCT
     );
     res.json(rows);
   } catch (error) {
     console.error('Error al obtener naciones:', error);
     res.status(500).json({ error: 'Error al obtener la lista de países' });
   }
-
 });
 
 

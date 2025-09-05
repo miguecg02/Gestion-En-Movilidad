@@ -514,20 +514,24 @@ const FormularioEnMovilidad: React.FC = () => {
 
   // Fetch funciones
  const fetchNacionalidades = useCallback(async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/personas/naciones/listado`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      const data = await response.json();
-      return Array.isArray(data) ? data.map(item => ({ value: item.nacionalidad, label: item.nacionalidad })) : [];
-    } catch (error) {
-      console.error('Error al cargar nacionalidades:', error);
-      return [];
-    }
-  }, [token]);
+  try {
+    const response = await fetch(`${API_URL}/api/personas/naciones/listado`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    // Ahora data es un array de objetos con solo la propiedad nacionalidad
+    return data.map((item: { nacionalidad: string }) => ({ 
+      value: item.nacionalidad, 
+      label: item.nacionalidad 
+    }));
+  } catch (error) {
+    console.error('Error al cargar nacionalidades:', error);
+    return [];
+  }
+}, [token]);
 
 
 const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {

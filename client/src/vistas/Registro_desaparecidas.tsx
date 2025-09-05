@@ -604,23 +604,25 @@ const FormularioDesaparecida: React.FC = () => {
   const { user } = useAuth();
   const { token } = useAuth();
 
-  const fetchNacionalidades = async () => {
+ const fetchNacionalidades = useCallback(async () => {
   try {
     const response = await fetch(`${API_URL}/api/personas/naciones/listado`, {
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json'
       }
     });
     const data = await response.json();
-    // Transform the data to match { value: string; label: string; }
-    return Array.isArray(data) ? data.map(item => ({ value: item.nacionalidad, label: item.nacionalidad })) : [];
+    // Ahora data es un array de objetos con solo la propiedad nacionalidad
+    return data.map((item: { nacionalidad: string }) => ({ 
+      value: item.nacionalidad, 
+      label: item.nacionalidad 
+    }));
   } catch (error) {
     console.error('Error al cargar nacionalidades:', error);
     return [];
   }
-};
+}, [token]);
 
 const fetchEstados = useCallback(async (): Promise<{value:string;label:string;}[]> => {
   try {
